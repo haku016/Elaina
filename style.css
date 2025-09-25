@@ -1,0 +1,449 @@
+* {
+    user-select: none;         /* Ngăn kéo thả/highlight văn bản */
+    caret-color: transparent;  /* Ẩn caret */
+}
+@font-face {
+    font-family: 'FVF Fernando 08';
+    src: url('fonts/FVF_Fernando_08.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+body {
+    margin: 0;
+    height: 100vh; /* đảm bảo chiếm toàn bộ chiều cao màn hình */
+    width: 100vw;  /* đảm bảo chiếm toàn bộ chiều rộng */
+    font-family: 'FVF Fernando 08', monospace;
+    background: url('assests/desktop-bg.png') no-repeat center center fixed;
+    background-size: cover; /* ảnh sẽ scale vừa khít màn hình */
+    image-rendering: pixelated;
+    -webkit-user-drag: none;
+    overflow: hidden;
+}
+
+.desktop {
+  display: flex;
+  gap: 50px; /* Reduced gap for better centering */
+  padding: 20px;
+  justify-content: center; /* Center the folders horizontally */
+  align-items: center; /* Center vertically if needed */
+}
+
+/* Folder */
+.folder {
+  text-align: center;
+  cursor: pointer;
+  width: 250px; /* Increased size */
+  height: 250px; /* Increased size */
+  outline: none;
+  pointer-events: auto;
+  position: relative;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.folder:focus {
+  outline: none !important;
+  box-shadow: none;
+}
+
+.folder img {
+  width: 250px; /* Increased size to match folder */
+  height: 250px; /* Increased size to match folder */
+  pointer-events: auto;
+}
+
+.folder span {
+  font-size: 20px; /* Increased font size */
+  color: white;
+  display: block;
+  pointer-events: auto;
+  text-align: center;
+  width: 250px; /* Increased to match folder width */
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 5px; /* Small margin to position below icon */
+}
+
+/* Music App Folder */
+.music-app {
+  width: 250px; /* Increased size */
+}
+
+.music-app img {
+  width: 250px; /* Increased size */
+  height: 250px; /* Increased size */
+}
+
+/* .music-app span {
+    color: #00ffcc; /* Màu sắc nổi bật để giống ứng dụng âm nhạc */
+
+/* Popup Window */
+/* Popup Window */
+.popup {
+  position: absolute;
+  top: 100px;
+  left: 200px;
+  width: 500px;
+  height: auto; /* Allow height to adjust to content */
+  background: #f6ebf1; /* Pastel pink background */
+  border: 3px solid #eac0cf; /* Soft pink border */
+  box-shadow: 4px 4px 0px #e175a4; /* Pink shadow for depth */
+  z-index: 1000;
+  font-family: 'FVF Fernando 08', monospace;
+  color: #333;
+}
+
+/* #window2.popup {
+  width: 950px;
+} */
+.hidden {
+    display: none;
+}
+
+.title-bar {
+  background: #e175a4; /* Light pink title bar */
+  color: white;
+  padding: 5px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move;         /* con trỏ kéo */
+}
+
+.close-btn {
+    background: #ff4d4d;
+    border: 2px solid #e175a4;
+    color: white;
+    cursor: pointer;
+    font-size: 10px;
+    padding: 2px 6px;
+}
+
+.content {
+    padding: 15px;
+    text-align: center;
+    min-height: 300px; /* Ensure minimum height for content */
+}
+
+.content img {
+    max-width: 100%;
+    border: 3px solid #e175a2;
+    margin-bottom: 10px;
+}
+
+.content p {
+    font-size: 12px;
+    margin-top: 5px;
+    margin-bottom: 30px;
+}
+
+/* Music Controls */
+.music-controls {
+  margin-top: 10px;
+  display: flex;
+  gap: 20px;               /* khoảng cách đều nhau */
+  justify-content: center;
+  align-items: center;
+}
+
+.control-btn {
+    background: #002366;
+    color: white;
+    border: 2px solid #000;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: 'Press Start 2P', cursive;
+}
+
+.control-btn:hover {
+    background: #004099;
+}
+
+#musicInput {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    padding: 5px;
+    border: 2px solid #000;
+    background: #fff;
+}
+/* Đĩa nhạc */
+.disc-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: auto;
+    margin-bottom: 16px;
+  }
+  
+  .disc {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 6px solid #333;
+    animation: spin 6s linear infinite;
+    object-fit: cover;       /* crop ảnh theo tỉ lệ gốc */
+    object-position: center; /* giữ trung tâm ảnh */
+  }
+  
+  /* .disc-hole {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: #e175a2;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  } */
+  
+  /* Nút Play/Pause tròn */
+  .circle-btn, .nav-btn{
+    width: 60px;
+    height: 60px;
+    border: none;
+    outline: none;
+    border-radius: 50%;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    margin: 10px auto;
+    box-shadow: none; /* Thêm để loại bỏ bóng đổ nếu có */
+    margin: 0 2px;
+}
+  
+  .circle-btn:focus,  .nav-btn:focus {
+    outline: none;       /* bỏ viền focus */
+    box-shadow: none;    /* chặn cả shadow focus */
+  }
+  .circle-btn img , .nav-btn img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+    border: none; /* Đảm bảo hình ảnh không có viền */
+    outline: none; /* Đảm bảo hình ảnh không có outline */
+}
+  .circle-btn span {
+    color: black;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Animation xoay */
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  #window2 .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Style for the scrollable text container */
+#window2 .text-container {
+    max-height: 300px; /* Adjust this height as needed */
+    width: 100%;
+    overflow-y: auto; /* Enable vertical scrollbar */
+    margin: 10px 0;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+/* Ensure the text inside is styled properly */
+#window2 .text-container p {
+    margin: 0;
+    font-size: 12px; /* Adjust font size as needed */
+    line-height: 1.5;
+}
+
+/* Optional: Custom scrollbar styling for better aesthetics */
+#window2 .text-container::-webkit-scrollbar {
+    width: 8px;
+}
+#window2 .text-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+#window2 .text-container::-webkit-scrollbar-thumb {
+    background: #e175a4;
+    border-radius: 4px;
+}
+#window2 .text-container::-webkit-scrollbar-thumb:hover {
+    background: #e4a5c0;
+}
+.text-container p {
+  white-space: pre-wrap; /* Giữ nguyên ký tự xuống dòng */
+  margin: 0;
+}
+
+#window3 .text-area {
+  max-height: 300px;      /* Giới hạn chiều cao text */
+  overflow-y: auto;       /* Cho cuộn dọc */
+  margin-top: 10px;
+  padding-right: 5px;       /* canh text dễ đọc */
+}
+
+/* Custom scrollbar giống Music Player */
+#window3 .text-area::-webkit-scrollbar {
+  width: 8px;
+}
+#window3 .text-area::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+#window3 .text-area::-webkit-scrollbar-thumb {
+  background: #e175a4;
+  border-radius: 4px;
+}
+#window3 .text-area::-webkit-scrollbar-thumb:hover {
+  background: #e4a5c0;
+}
+/* Container chiếm toàn màn hình */
+/* Container chiếm toàn màn hình */
+.swing-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none; /* bỏ bắt sự kiện chuột */
+    overflow: hidden;
+    z-index: 10; /* để dưới popup nhưng trên background */
+}
+
+/* đảm bảo con của nó cũng không chặn chuột */
+.swing-container * {
+    pointer-events: none;
+}
+  /* Spider pixel style */
+  .spider-pixel {
+    width: 120px;
+    image-rendering: pixelated;
+  }
+  
+  /* Swinger: gồm dây + nhân vật */
+  .swinger {
+    position: absolute;
+    top: -100px; /* điểm neo */
+    left: 20%;   /* vị trí neo của Miles */
+    transform-origin: top center; /* xoay quanh đầu dây */
+    animation: swing 4s ease-in-out infinite;
+  }
+
+.swinger img {
+    width: 120px;
+    pointer-events: auto; /* đảm bảo click được */
+}
+  /* Gwen neo ở chỗ khác */
+  .swinger.gwen {
+    left: 70%;
+    animation-delay: 2s;
+  }
+  
+  .web-line {
+    width: 2px;
+    height: 500px; /* dây dài hơn */
+    background: white;
+    margin: 0 auto;
+  }
+  
+  .swinger img {
+    margin-top: 0px; /* nhân vật nằm cuối dây */
+  }
+  
+  /* Animation đu qua lại (vòng cung) */
+  @keyframes swing {
+    0%   { transform: rotate(-30deg); }
+    50%  { transform: rotate(30deg); }
+    100% { transform: rotate(-30deg); }
+  }
+
+  .album-controls-4 {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 40px;  /* tách nút ra ngang */
+  }
+  
+  .nav-btn-4 {
+    width: 60px;
+    height: 60px;
+    border: none;
+    outline: none;
+    border-radius: 50%;   /* bo tròn */
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    margin: 0 2px;
+    box-shadow: none;
+  }
+  
+  .nav-btn-4:focus {
+    outline: none;
+    box-shadow: none;
+  }
+  
+  .nav-btn-4 img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+    border: none;
+    outline: none;
+  }
+  
+  #albumImage4 {
+    width: 100%;          /* ảnh chiếm toàn bộ chiều ngang khung */
+    max-width: 400px;     /* giới hạn tối đa, ví dụ 400px */
+    height: 300px;        /* cố định chiều cao */
+    object-fit: cover;    /* giữ tỉ lệ, cắt cho vừa khung */
+    border: 3px solid #e175a2;
+    margin-bottom: 10px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .album-controls-5 {
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+  }
+  
+  .nav-btn-5 {
+    width: 60px;          /* Tăng kích thước để giống với nav-btn-4 và circle-btn */
+    height: 60px;
+    background: transparent;
+    border: none;         /* Đảm bảo không có viền vuông */
+    outline: none;        /* Bỏ outline khi focus */
+    cursor: pointer;
+    padding: 0;
+    border-radius: 50%;   /* Thêm bo tròn để giống các nút khác */
+}
+
+.nav-btn-5 img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+    border: none;
+    outline: none;
+}

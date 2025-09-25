@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desktop Memories</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Swinger -->
+    <div class="swing-container">
+        <!-- Miles -->
+        <div class="swinger miles">
+            <div class="web-line"></div>
+            <img src="assests/miles.png" alt="Miles" class="spider-pixel">
+        </div>
+        <!-- Gwen -->
+        <div class="swinger gwen">
+            <div class="web-line"></div>
+            <img src="assests/gwen.png" 
+                 alt="Spider Gwen" 
+                 class="spider-pixel" 
+                 onclick="openWindow(5)">
+         </div>
+    </div>
+
+    <!-- Desktop -->
+    <div class="desktop">
+        <div class="folder" ondblclick="openWindow(1)" tabindex="-1">
+            <img src="assests/desktop-draw.png" alt="Folder 1">
+            <span>Desktop</span>
+        </div>
+        <div class="folder music-app" ondblclick="openWindow(2)" tabindex="-1">
+            <img src="assests/gwen_3.png" alt="Folder 2">
+            <span>Spider Tune</span>
+        </div>
+        <div class="folder" ondblclick="openWindow(3)" tabindex="-1">
+            <img src="assests/mail_gwen.png" alt="Folder 3">
+            <span>Memory 3</span>
+        </div>
+        <div class="folder" ondblclick="openWindow(4)" tabindex="-1">
+            <img src="assests/gwen_folder.png" alt="Folder 4">
+            <span>Memory 4</span>
+        </div>
+    </div>
+
+    <!-- Popup Window 1 -->
+    <div class="popup hidden" id="window1">
+        <div class="title-bar" onmousedown="dragMouseDown(event, this)">
+            <span>📂 Memory 1</span>
+            <div>
+                <button class="close-btn" onclick="closeWindow(1)">✖</button>
+            </div>
+        </div>
+        <div class="content">
+            <img src="images/thucngan.jpg" alt="Memory 1">
+            <p>Saturday, September 27th<br>Happy Birthday bbi nhaaaaa ⊹ ࣪ ˖🍰₊˚⊹♡<br>Đây là một món quà nho nhỏ dành cho bạn, ừm mình nghĩ là mình sẽ làm phức tạm hơn nhiều animation hơn nhưng mà kiểu cũng nhiều thứ, chủ yếu là do mình lười nên chắc làm không kịp.<br> Nhưng không sao mình sẽ scale up cái web này lên thành một cái chỗ fun fun cho bạn ghé thăm lâu lâu sẽ update một cái trên đây cũng cũng cool mà ha.<br> Trước tiên là chúc mừng sinh nhật bạn cái đã. Ok Let's Go !!</rbr></p>
+            <audio id="music1" loop>
+                <source src="assets/music1.mp3" type="audio/mpeg">
+            </audio>
+        </div>
+    </div>
+
+    <!-- Popup Window 2 -->
+    <div class="popup hidden" id="window2">
+      <div class="title-bar" onmousedown="dragMouseDown(event, this)">
+          <span>🎵 Music Player</span>
+          <div>
+              <button class="close-btn" onclick="closeWindow(2)">✖</button>
+          </div>
+      </div>
+      <div class="content">
+          <div class="disc-container">
+              <img src="images/img2.png" alt="Memory 2" class="disc">
+              <div class="disc-hole"></div>
+          </div>
+          <div class="text-container">
+              <p>“5 tháng qua, mỗi ngày đều là một trang mới trong cuốn nhật ký của chúng ta.”</p>
+          </div>
+          <audio id="music2" loop>
+              <source src="music/ssvid.net--Billie-Eilish-BIRDS-OF-A-FEATHER.mp3" type="audio/mpeg">
+          </audio>
+          <div class="music-controls">
+              <button class="nav-btn" onclick="prevSong()">
+                  <img src="assests/prev_btn.png" alt="Prev" class="icon-btn">
+              </button>
+              <button class="circle-btn" id="playPauseBtn" onclick="toggleMusic()">
+                  <img id="playPauseIcon" src="assests/pause_btn-removebg-preview.png" alt="Play">
+              </button>
+              <button class="nav-btn" onclick="nextSong()">
+                  <img src="assests/next_btn.png" alt="Next" class="icon-btn">
+              </button>
+          </div>
+      </div>
+  </div>
+    <!-- Popup Window 3 -->
+    <div class="popup hidden" id="window3">
+      <div class="title-bar" onmousedown="dragMouseDown(event, this)">
+        <span>📂 Memory 3</span>
+        <div>
+          <button class="close-btn" onclick="closeWindow(3)">✖</button>
+        </div>
+      </div>
+      <div class="content">
+        <img src="images/birthday2025.jpg" alt="Memory 3">
+    
+        <!-- bọc phần text -->
+        <div class="text-area">
+          <p>✨Chúc mừng sinh nhật Thục Ngân nha✨</p>
+          <p>Sao ta... Mình cũng có quá trời lời chúc nhưng mà kiểu chắc qua một năm chắc chúc đi chúc lại những điều tốt đẹp cũng không sao ha.</p>
+          <p>Trước hết để mình dài dòng một cái<br>
+            Thật sự, thật sự mình cảm giác rất là biết ơn khi gặp được bạn. 
+           Kiểu mình nghĩ là cái 🕸spider-phase🕸 của mình rẽ sang nhánh mới khi gặp bạn á, nói chung là có nhiều thứ xung quanh mình thay đổi, nhưng mà quan trọng là mình thấy là có người đồng hành cùng mình trên chặn đường này.<br>
+           <p>Đầu tiên mình mong Thục Ngân luôn giữ nụ cười trên môi bạn, sống hạnh phúc, khỏe mạnh với gia đình, bạn bè, và mình nữa.<br>
+           Mình chúc bạn luôn gặp nhiều điều may mắn, suôn sẻ trên con đường bạn đi, bạn lựa chọn. Đạt được mục tiêu mình muốn trong tuổi mới nè<br>
+           Quan trọng là mong cho tình cảm của tụi mình sẽ bền chặt hơn mỗi cái mà tụi mình đi qua, song là về mặt skillset cũng phát triển để có tiền nhiều hơn để ăn mì kayyyyyy🍜, gà rán jolibeeee🍝🍗.
+           Mình biết là trên con đường đi tới được những thứ mình muốn nó sẽ khiến tụi mình tự nghi ngờ bản thân, hay là không còn nhiệt huyết như trước nữa, đối với mình cũng vậy. Không sao nếu cuộc sống không nhẹ nhàng với tụi mình, thì tụi mình sẽ luôn nhẹ nhàng với nhau ha. Giữ cho nhau luôn có một cái nhìn tích cực về cuộc sống, mong là bạn sẽ đỡ tư ti và tự trách bản thân mình hơn không thì lỡ có gì xảy ra thì đổ thừa tại ma quỷ cũng được =))) <br>
+           Còn gì nữa không ta, mình nghĩ làm gì cũng được miễn là có nhau sống an yên là được. Nhưng mà có nhiều tiền thì tốt ha lỡ có tận thế mưa lớn còn có cái để tích trữ vật tư.<br>
+           Mình yêu bạn nhiều lắm 💖, mình yêu sự dễ thương và giản dị của bạn, yêu vibe đồng hành vừa thân quen vừa tri kỷ, yêu cách bạn dám là chính mình, chân thật và gần gũi. Mình thương sự caring củacủa bạn dành cho mình, ngưỡng mộ sự nỗ lực không ngừng của bạn cho tương lai. Mình thấy hạnh phúc vì có một người hiểu cả những trò đùa nhảm nhí, cả những lúc mình tự ti, lo lắng mà vẫn ở cạnh. Mình yêu đôi mắt, nụ cười, mùi tóc, và cả sự giản dị trong cách sống của bạn.<br></p>
+           <p>Mặc dù là khoảng thời gian sắp tới chắc là cũng sẽ có những chuyện khiến tụi mình không vui. Nhưng mà mình mong là dù có chuyện gì đi chăng nữa mọi thứ tụi mình làm đều hội tụ về một điểm, mọi vũ trụ đều hội tụ về việc tụi mình sẽ hạnh phúc bên nhau như những ngày đầu.</p>
+           <p>Mình thương bạn lắm, trân quý của mình</p>
+        </div>
+    
+        <audio id="music3" loop>
+          <source src="assets/music3.mp3" type="audio/mpeg">
+        </audio>
+      </div>
+    </div>
+
+    <!-- Popup Window 4 -->
+    <div class="popup hidden" id="window4">
+      <div class="title-bar" onmousedown="dragMouseDown(event, this)">
+        <span>📂 Memory 4</span>
+        <div>
+          <button class="close-btn" onclick="closeWindow(4)">✖</button>
+        </div>
+      </div>
+      <div class="content">
+        <img id="albumImage4" src="assests/memory4_1.png" alt="Memory 4">
+        <p id="albumText4">“Kỷ niệm đáng nhớ số 4.”</p>
+    
+        <div class="album-controls-4">
+          <button class="nav-btn-4" onclick="prevAlbum4()">
+            <img src="assests/prev_btn.png" alt="Prev">
+          </button>
+          <button class="nav-btn-4" onclick="nextAlbum4()">
+            <img src="assests/next_btn.png" alt="Next">
+          </button>
+        </div>
+      </div>
+    </div>
+       <!-- Popup Window 5 -->
+      <div class="popup hidden" id="window5">
+        <div class="title-bar" onmousedown="dragMouseDown(event, this)">
+          <span>📂 Spider Gwen</span>
+          <div>
+            <button class="close-btn" onclick="closeWindow(5)">✖</button>
+          </div>
+        </div>
+        <div class="content">
+          <img id="albumImage5" src="assests/josh_elai_spider.png" alt="Spider Gwen">
+          <p id="albumText5">“Gwen luôn ở đây cùng bạn.”</p>
+      
+          <div class="album-controls-5">
+            <button class="nav-btn-5" onclick="prevAlbum5()">
+              <img src="assests/prev_btn.png" alt="Prev">
+            </button>
+            <button class="nav-btn-5" onclick="nextAlbum5()">
+              <img src="assests/next_btn.png" alt="Next">
+            </button>
+          </div>
+        </div>
+      </div>
+    <script src="script.js"></script>
+</body>
+</html>
