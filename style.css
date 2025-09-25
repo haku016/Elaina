@@ -358,14 +358,13 @@ body {
     animation-name: swing-right; /* dùng keyframe đối xứng */
   }
   
-  /* Keyframes cho Miles */
+
   @keyframes swing-left {
     0%   { transform: rotate(-30deg); }
     50%  { transform: rotate(30deg); }
     100% { transform: rotate(-30deg); }
   }
   
-  /* Keyframes cho Gwen (ngược pha) */
   @keyframes swing-right {
     0%   { transform: rotate(30deg); }
     50%  { transform: rotate(-30deg); }
@@ -373,16 +372,16 @@ body {
   }
   .web-line {
     width: 2px;
-    height: 500px; /* dây dài hơn */
+    height: 500px;
     background: white;
     margin: 0 auto;
   }
   
   .swinger img {
-    margin-top: 0px; /* nhân vật nằm cuối dây */
+    margin-top: 0px; 
   }
   
-  /* Animation đu qua lại (vòng cung) */
+
   @keyframes swing {
     0%   { transform: rotate(-30deg); }
     50%  { transform: rotate(30deg); }
