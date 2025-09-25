@@ -336,22 +336,41 @@ body {
   /* Swinger: gồm dây + nhân vật */
   .swinger {
     position: absolute;
-    top: -100px; /* điểm neo */
-    left: 20%;   /* vị trí neo của Miles */
-    transform-origin: top center; /* xoay quanh đầu dây */
+    top: -100px;
+    transform-origin: top center;
     animation: swing 4s ease-in-out infinite;
   }
-
-.swinger img {
+  
+  .swinger img {
     width: 120px;
-    pointer-events: auto; /* đảm bảo click được */
-}
-  /* Gwen neo ở chỗ khác */
-  .swinger.gwen {
-    left: 70%;
-    animation-delay: 2s;
+    pointer-events: auto;
   }
   
+  /* Miles */
+  .swinger.miles {
+    left: 20%;
+    animation-name: swing-left; /* dùng keyframe riêng */
+  }
+  
+  /* Gwen */
+  .swinger.gwen {
+    left: 70%;
+    animation-name: swing-right; /* dùng keyframe đối xứng */
+  }
+  
+  /* Keyframes cho Miles */
+  @keyframes swing-left {
+    0%   { transform: rotate(-30deg); }
+    50%  { transform: rotate(30deg); }
+    100% { transform: rotate(-30deg); }
+  }
+  
+  /* Keyframes cho Gwen (ngược pha) */
+  @keyframes swing-right {
+    0%   { transform: rotate(30deg); }
+    50%  { transform: rotate(-30deg); }
+    100% { transform: rotate(30deg); }
+  }
   .web-line {
     width: 2px;
     height: 500px; /* dây dài hơn */
