@@ -465,3 +465,305 @@ body {
     border: none;
     outline: none;
 }
+
+/* Chat Toggle Button */
+.chat-toggle-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e175a4, #e4a5c0);
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(225, 117, 164, 0.4);
+    cursor: pointer;
+    font-size: 28px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: all 0.3s ease;
+}
+
+.chat-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(225, 117, 164, 0.6);
+}
+
+/* Chat Box */
+.chat-box {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 800px; /* Tăng từ 350px lên 800px */
+    height: 600px; /* Tăng từ 500px lên 600px */
+    background: #f6ebf1;
+    border: 3px solid #eac0cf;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 9998;
+    font-family: 'FVF Fernando 08', monospace;
+}
+
+.chat-box.hidden {
+    display: none;
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #e175a4, #e4a5c0);
+    color: #fff;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.close-chat {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.close-chat:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Main content area - 2 columns layout */
+.chat-main {
+    flex: 1;
+    display: flex;
+    gap: 15px;
+    overflow: hidden;
+    background: #fff;
+}
+
+/* Stats Panel - Left side */
+.stats-panel {
+    width: 280px;
+    min-width: 280px;
+    background: linear-gradient(135deg, #f0e6f6, #faf5fc);
+    border-right: 2px solid #eac0cf;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stats-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.stats-panel::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.stats-panel::-webkit-scrollbar-thumb {
+    background: #e175a4;
+    border-radius: 3px;
+}
+
+.stats-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #e175a4;
+    text-align: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e175a4;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.7);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #eac0cf;
+}
+
+.stat-label {
+    font-size: 10px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 12px;
+    color: #333;
+    font-weight: bold;
+}
+
+.stat-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.stat-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e175a4, #e4a5c0);
+    transition: width 0.3s ease;
+}
+
+.stats-empty {
+    text-align: center;
+    color: #999;
+    font-size: 11px;
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Chat Content - Right side */
+.chat-content {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* Tăng gap từ 10px lên 12px */
+}
+
+.chat-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.chat-content::-webkit-scrollbar-thumb {
+    background: #e175a4;
+    border-radius: 3px;
+}
+
+.chat-bubble {
+    padding: 12px 16px; /* Tăng padding từ 10px 14px */
+    border-radius: 12px;
+    max-width: 85%; /* Tăng từ 75% lên 85% */
+    word-wrap: break-word;
+    font-size: 12px;
+    line-height: 1.6; /* Tăng từ 1.4 lên 1.6 */
+    animation: fadeIn 0.3s ease;
+    white-space: pre-wrap; /* Giữ format xuống dòng */
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chat-bubble.user {
+    background: linear-gradient(135deg, #e175a4, #e4a5c0);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-bubble.bot {
+    background: #f0f0f0;
+    color: #333;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    border: 1px solid #e0e0e0;
+}
+
+.chat-bubble.bot.error {
+    background: #ffe0e0;
+    border-color: #ffb0b0;
+}
+
+.chat-bubble.typing {
+    background: #f0f0f0;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+.chat-bubble.typing .dot-1,
+.chat-bubble.typing .dot-2,
+.chat-bubble.typing .dot-3 {
+    animation: typingDot 1.4s infinite;
+}
+
+.chat-bubble.typing .dot-2 {
+    animation-delay: 0.2s;
+}
+
+.chat-bubble.typing .dot-3 {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingDot {
+    0%, 60%, 100% {
+        opacity: 0.3;
+    }
+    30% {
+        opacity: 1;
+    }
+}
+
+.chat-input {
+    display: flex;
+    border-top: 2px solid #eac0cf;
+    background: #f6ebf1;
+    padding: 10px;
+    gap: 8px;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid #eac0cf;
+    border-radius: 8px;
+    outline: none;
+    font-family: 'FVF Fernando 08', monospace;
+    font-size: 12px;
+    background: #fff;
+    transition: border-color 0.2s;
+    caret-color: #e175a4; /* Cho phép caret hiện trong chat input */
+}
+
+.chat-input input:focus {
+    border-color: #e175a4;
+}
+
+.chat-input button {
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #e175a4, #e4a5c0);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'FVF Fernando 08', monospace;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.chat-input button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(225, 117, 164, 0.3);
+}
+
+.chat-input button:active {
+    transform: translateY(0);
+}

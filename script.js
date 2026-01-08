@@ -236,3 +236,453 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// Chat Box Functionality
+const chatContent = document.getElementById('chatContent');
+const chatInput = document.getElementById('chatInput');
+
+// Game state management
+let currentGameState = {
+    isPlaying: false,
+    characterStats: null
+};
+
+function toggleChat() {
+    const chatBox = document.getElementById('chatBox');
+    chatBox.classList.toggle('hidden');
+    
+    // Focus vào input khi mở chat
+    if (!chatBox.classList.contains('hidden')) {
+        if (chatInput) chatInput.focus();
+    }
+}
+
+// Update stats panel
+function updateStatsPanel(stats) {
+    const statsContainer = document.getElementById('statsContainer');
+    const statsEmpty = document.getElementById('statsEmpty');
+    
+    if (!stats) {
+        statsEmpty.style.display = 'block';
+        statsContainer.innerHTML = '';
+        return;
+    }
+    
+    statsEmpty.style.display = 'none';
+    currentGameState.characterStats = stats;
+    
+    let html = '';
+    
+    // Character Name
+    if (stats.name) {
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">👤 TÊN NHÂN VẬT</div>
+                <div class="stat-value">${stats.name}</div>
+            </div>
+        `;
+    }
+    
+    // Health
+    if (stats.health !== undefined) {
+        const healthPercent = stats.maxHealth ? (stats.health / stats.maxHealth * 100) : 100;
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">❤️ SỨC KHỎE</div>
+                <div class="stat-value">${stats.health}${stats.maxHealth ? '/' + stats.maxHealth : ''}</div>
+                <div class="stat-bar">
+                    <div class="stat-bar-fill" style="width: ${healthPercent}%; background: linear-gradient(90deg, #ff4d4d, #ff8080);"></div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Mana/Energy
+    if (stats.mana !== undefined || stats.energy !== undefined) {
+        const manaValue = stats.mana !== undefined ? stats.mana : stats.energy;
+        const maxMana = stats.maxMana || stats.maxEnergy || 100;
+        const manaPercent = (manaValue / maxMana * 100);
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">✨ NĂNG LƯỢNG</div>
+                <div class="stat-value">${manaValue}/${maxMana}</div>
+                <div class="stat-bar">
+                    <div class="stat-bar-fill" style="width: ${manaPercent}%; background: linear-gradient(90deg, #4d9fff, #80b3ff);"></div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Level
+    if (stats.level) {
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">⭐ CẤP ĐỘ</div>
+                <div class="stat-value">Level ${stats.level}</div>
+            </div>
+        `;
+    }
+    
+    // Strength
+    if (stats.strength !== undefined) {
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">💪 SỨC MẠNH</div>
+                <div class="stat-value">${stats.strength}</div>
+            </div>
+        `;
+    }
+    
+    // Intelligence
+    if (stats.intelligence !== undefined) {
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">🧠 TRÍ TUỆ</div>
+                <div class="stat-value">${stats.intelligence}</div>
+            </div>
+        `;
+    }
+    
+    // Agility/Dexterity
+    if (stats.agility !== undefined || stats.dexterity !== undefined) {
+        const agilityValue = stats.agility !== undefined ? stats.agility : stats.dexterity;
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">⚡ NHANH NHẸN</div>
+                <div class="stat-value">${agilityValue}</div>
+            </div>
+        `;
+    }
+    
+    // Gold/Money
+    if (stats.gold !== undefined || stats.money !== undefined) {
+        const goldValue = stats.gold !== undefined ? stats.gold : stats.money;
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">💰 VÀNG</div>
+                <div class="stat-value">${goldValue}</div>
+            </div>
+        `;
+    }
+    
+    // Items
+    if (stats.items && stats.items.length > 0) {
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">🎒 VẬT PHẨM</div>
+                <div class="stat-value" style="font-size: 10px; line-height: 1.4;">
+                    ${stats.items.join(', ')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Companions
+    if (stats.companions && stats.companions.length > 0) {
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">👥 ĐỒNG ĐỘI</div>
+                <div class="stat-value" style="font-size: 10px; line-height: 1.4;">
+                    ${stats.companions.join(', ')}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Location
+    if (stats.location) {
+        html += `
+            <div class="stat-item">
+                <div class="stat-label">📍 VỊ TRÍ</div>
+                <div class="stat-value" style="font-size: 11px;">${stats.location}</div>
+            </div>
+        `;
+    }
+    
+    statsContainer.innerHTML = html;
+}
+
+// Extract stats from AI response
+function extractStatsFromResponse(text) {
+    const stats = {};
+    
+    // Try to extract common stat patterns
+    const patterns = {
+        name: /(?:Tên|Name):\s*([^\n]+)/i,
+        health: /(?:HP|Health|Máu|Sức khỏe):\s*(\d+)(?:\/(\d+))?/i,
+        mana: /(?:MP|Mana|Năng lượng):\s*(\d+)(?:\/(\d+))?/i,
+        level: /(?:Level|Cấp độ|Lv):\s*(\d+)/i,
+        strength: /(?:STR|Strength|Sức mạnh):\s*(\d+)/i,
+        intelligence: /(?:INT|Intelligence|Trí tuệ):\s*(\d+)/i,
+        agility: /(?:AGI|Agility|DEX|Dexterity|Nhanh nhẹn):\s*(\d+)/i,
+        gold: /(?:Gold|Vàng|Tiền):\s*(\d+)/i,
+        location: /(?:Vị trí|Location):\s*([^\n]+)/i
+    };
+    
+    // Extract basic stats
+    for (const [key, pattern] of Object.entries(patterns)) {
+        const match = text.match(pattern);
+        if (match) {
+            if (key === 'health' || key === 'mana') {
+                stats[key] = parseInt(match[1]);
+                if (match[2]) {
+                    stats['max' + key.charAt(0).toUpperCase() + key.slice(1)] = parseInt(match[2]);
+                }
+            } else if (key === 'name' || key === 'location') {
+                stats[key] = match[1].trim();
+            } else {
+                stats[key] = parseInt(match[1]);
+            }
+        }
+    }
+    
+    // Extract items
+    const itemsMatch = text.match(/(?:Items|Vật phẩm|Đồ):\s*([^\n]+)/i);
+    if (itemsMatch) {
+        stats.items = itemsMatch[1].split(',').map(item => item.trim()).filter(Boolean);
+    }
+    
+    // Extract companions
+    const companionsMatch = text.match(/(?:Companions|Đồng đội|Bạn đồng hành):\s*([^\n]+)/i);
+    if (companionsMatch) {
+        stats.companions = companionsMatch[1].split(',').map(comp => comp.trim()).filter(Boolean);
+    }
+    
+    return Object.keys(stats).length > 0 ? stats : null;
+}
+
+// ---- Gemini model discovery / cache (avoid 404 wrong model ids) ----
+let __geminiModelCache = null;
+
+async function getSupportedGeminiModels(API_BASE, API_KEY) {
+    if (__geminiModelCache) return __geminiModelCache;
+
+    const preferred = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
+    const listUrl = `${API_BASE}/models?key=${API_KEY}`;
+
+    try {
+        const res = await fetch(listUrl, { method: 'GET' });
+        if (!res.ok) throw new Error(`ListModels failed: ${res.status}`);
+        const data = await res.json();
+
+        const models = (data.models || [])
+            .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent'))
+            .map(m => (m.name || '').replace(/^models\//, ''))
+            .filter(Boolean);
+
+        // Sort: preferred first, then the rest
+        const sorted = [
+            ...preferred.filter(p => models.includes(p)),
+            ...models.filter(m => !preferred.includes(m))
+        ];
+
+        __geminiModelCache = sorted.length ? sorted : preferred; // fallback to preferred if empty
+        return __geminiModelCache;
+    } catch (e) {
+        // If listing is blocked, fall back to a conservative default set.
+        __geminiModelCache = preferred;
+        return __geminiModelCache;
+    }
+}
+
+async function sendMessage() {
+    const userMessage = chatInput.value.trim();
+    if (!userMessage) return;
+
+    // Display user message
+    const userBubble = document.createElement('div');
+    userBubble.className = 'chat-bubble user';
+    userBubble.textContent = userMessage;
+    chatContent.appendChild(userBubble);
+
+    // Clear input
+    chatInput.value = '';
+
+    // Show typing indicator
+    const typingBubble = document.createElement('div');
+    typingBubble.className = 'chat-bubble bot typing';
+    typingBubble.innerHTML = 'Đang suy nghĩ<span class="dot-1">.</span><span class="dot-2">.</span><span class="dot-3">.</span>';
+    typingBubble.id = 'typing-indicator';
+    chatContent.appendChild(typingBubble);
+
+    // Scroll to bottom
+    chatContent.scrollTop = chatContent.scrollHeight;
+
+    try {
+        const API_KEY = (window.GEMINI_API_KEY || 'AIzaSyAMMRLolGBdT8uBwLMuvPrj96w8bfFPjJI');
+        const API_BASE = 'https://generativelanguage.googleapis.com/v1'; //using v1
+
+        // --- Detect story-driven game requests ---
+        const isStoryGameRequest = userMessage.toLowerCase().includes("tạo một trò chơi story driven") || 
+                                   userMessage.toLowerCase().includes("bắt đầu game") ||
+                                   userMessage.toLowerCase().includes("chơi game");
+
+        const promptText = isStoryGameRequest
+            ? `Bạn là một Game Master chuyên nghiệp tạo trò chơi nhập vai story-driven với hiệu ứng butterfly effect.
+
+YÊU CẦU TẠO GAME:
+- Viết bằng tiếng Việt có cảm xúc, sinh động
+- Tạo MỘT CHƯƠNG ĐẦY ĐỦ với ít nhất 800-1200 từ
+- Mô tả chi tiết: bối cảnh, nhân vật, không khí, cảm giác
+- Phải có:
+  + Phần mở đầu hấp dẫn (200-300 từ)
+  + Tình huống xung đột hoặc bí ẩn
+  + Thông số nhân vật chi tiết (stats, items, companions) - PHẢI HIỂN THỊ RÕ RÀNG
+  + 4-5 lựa chọn tương tác CỤ THỂ (A, B, C, D, E)
+  + Mỗi lựa chọn phải mô tả rõ hậu quả có thể xảy ra
+
+FORMAT THÔNG SỐ NHÂN VẬT (BẮT BUỘC):
+📊 THÔNG SỐ NHÂN VẬT:
+- Tên: [Tên nhân vật]
+- HP: [số hiện tại]/[số tối đa]
+- Năng lượng: [số]/100
+- Level: [số]
+- Sức mạnh: [số]
+- Trí tuệ: [số]
+- Nhanh nhẹn: [số]
+- Vàng: [số]
+- Vật phẩm: [danh sách vật phẩm]
+- Đồng đội: [danh sách đồng đội nếu có]
+- Vị trí: [địa điểm hiện tại]
+
+CHỦ ĐỀ: ${userMessage}
+
+LƯU Ý: 
+- KHÔNG viết tóm tắt, hãy viết ĐẦY ĐỦ chi tiết
+- Sử dụng emoji phù hợp để tạo không khí
+- Kết thúc bằng câu hỏi mở để người chơi tương tác
+- Format đẹp với tiêu đề, ngắt đoạn rõ ràng
+- PHẢI có phần thông số nhân vật ở đầu hoặc cuối
+
+Hãy bắt đầu CHƯƠNG 1 ngay bây giờ!`
+        : currentGameState.isPlaying 
+            ? `Bạn là Game Master đang điều hành một trò chơi story-driven. Người chơi vừa đưa ra lựa chọn: "${userMessage}"
+
+Hãy:
+1. Mô tả chi tiết hậu quả của lựa chọn (300-500 từ)
+2. Cập nhật thông số nhân vật nếu có thay đổi
+3. Đưa ra tình huống mới và 4-5 lựa chọn tiếp theo
+
+FORMAT THÔNG SỐ NHÂN VẬT (nếu có thay đổi):
+📊 CẬP NHẬT THÔNG SỐ:
+- HP: [số]/[max]
+- Năng lượng: [số]/100
+- Vật phẩm: [danh sách]
+- Vị trí: [địa điểm]
+(chỉ liệt kê những gì thay đổi)
+
+Tiếp tục câu chuyện một cách sinh động!`
+            : `Bạn là Elaina, một trợ lý AI thân thiện, dễ thương và vui vẻ, rất thích Spider-Man. Hãy trả lời ngắn gọn (tối đa 2-3 câu), dễ thương và sử dụng emoji phù hợp. Đôi khi thêm 🕸️ vào câu trả lời. 
+
+Câu hỏi: ${userMessage}`;
+
+        const payload = {
+            contents: [ { parts: [ { text: promptText } ] } ],
+            generationConfig: {
+                temperature: isStoryGameRequest ? 0.85 : 0.9,
+                maxOutputTokens: isStoryGameRequest ? 8192 : 500,
+                topP: 0.95,
+                topK: 40 
+            }
+        };
+
+        let response = null;
+        let lastErrorText = '';
+
+        // Discover supported models for THIS key/project, then try in order.
+        const MODEL_CANDIDATES = await getSupportedGeminiModels(API_BASE, API_KEY);
+
+        for (const model of MODEL_CANDIDATES) {
+            const API_URL = `${API_BASE}/models/${model}:generateContent?key=${API_KEY}`;
+
+            response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) break;
+
+            // Try next model on "not found / not supported"
+            if (response.status === 404) {
+                lastErrorText = await response.text().catch(() => '');
+                continue;
+            }
+
+            lastErrorText = await response.text().catch(() => '');
+            break;
+        }
+
+        // Remove typing indicator
+        const typing = document.getElementById('typing-indicator');
+        if (typing) typing.remove();
+
+        if (!response || !response.ok) {
+            // response body may not be JSON
+            let errorJson = null;
+            try { errorJson = await response.json(); } catch { /* ignore */ }
+            const msg = errorJson?.error?.message || lastErrorText || 'Unknown error';
+            throw new Error(`API Error: ${response ? response.status : 'NO_RESPONSE'} - ${msg}`);
+        }
+
+        const data = await response.json();
+
+        // Extract bot response
+        const botReply =
+            data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+            'Xin lỗi, mình không hiểu câu hỏi của bạn. 😅';
+
+        // Extract and update stats if this is a game response
+        if (isStoryGameRequest || currentGameState.isPlaying) {
+            const extractedStats = extractStatsFromResponse(botReply);
+            if (extractedStats) {
+                updateStatsPanel(extractedStats);
+                currentGameState.isPlaying = true;
+            }
+        }
+
+        // Display bot response with typing effect
+        const botBubble = document.createElement('div');
+        botBubble.className = 'chat-bubble bot';
+        chatContent.appendChild(botBubble);
+
+        // Typing effect
+        let i = 0;
+        const typingSpeed = 20;
+        function typeWriter() {
+            if (i < botReply.length) {
+                botBubble.textContent += botReply.charAt(i);
+                i++;
+                setTimeout(typeWriter, typingSpeed);
+                chatContent.scrollTop = chatContent.scrollHeight;
+            }
+        }
+        typeWriter();
+
+    } catch (error) {
+        console.error('Error:', error);
+        
+        // Remove typing indicator
+        const typing = document.getElementById('typing-indicator');
+        if (typing) typing.remove();
+
+        // Display error message
+        const errorBubble = document.createElement('div');
+        errorBubble.className = 'chat-bubble bot error';
+        errorBubble.textContent = 'Ối! Có lỗi xảy ra rồi. Vui lòng thử lại sau nhé! 🙏';
+        chatContent.appendChild(errorBubble);
+    }
+
+    // Scroll to bottom
+    chatContent.scrollTop = chatContent.scrollHeight;
+}
+
+// Allow Enter key to send message
+if (chatInput) {
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+}

@@ -161,7 +161,7 @@
         </div>
         <div class="content">
           <img id="albumImage5" src="assests/josh_elai_spider.png" alt="Spider Gwen">
-          <p id="albumText5">“Gwen luôn ở đây cùng bạn.”</p>
+          <p id="albumText5">"Gwen luôn ở đây cùng bạn."</p>
       
           <div class="album-controls-5">
             <button class="nav-btn-5" onclick="prevAlbum5()">
@@ -173,6 +173,40 @@
           </div>
         </div>
       </div>
+
+    <!-- Chat Box -->
+    <div class="chat-box hidden" id="chatBox">
+        <div class="chat-header">
+            <span>💬 Chat with Elaina</span>
+            <button class="close-chat" onclick="toggleChat()">✖</button>
+        </div>
+        <div class="chat-main">
+            <!-- Stats Panel -->
+            <div class="stats-panel" id="statsPanel">
+                <div class="stats-title">📊 NHÂN VẬT</div>
+                <div class="stats-empty" id="statsEmpty">
+                    Bắt đầu trò chơi để xem thông tin nhân vật
+                </div>
+                <div id="statsContainer"></div>
+            </div>
+            <!-- Chat Content -->
+            <div class="chat-content" id="chatContent">
+                <div class="chat-bubble bot">
+                    Xin chào! Mình là Elaina. Bạn muốn nói chuyện về điều gì? 🕸️
+                </div>
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Nhập tin nhắn...">
+            <button onclick="sendMessage()">Gửi</button>
+        </div>
+    </div>
+
+    <!-- Chat Toggle Button -->
+    <button class="chat-toggle-btn" onclick="toggleChat()">
+        💬
+    </button>
+
     <script src="script.js"></script>
 </body>
 </html>
