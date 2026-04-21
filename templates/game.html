@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🕸️ Story Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      height: 100vh; overflow: hidden;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background: #0d0610;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    .header {
+      height: 46px; flex-shrink: 0;
+      background: linear-gradient(90deg, #2d1b3d, #4a1040, #2d1b3d);
+      border-bottom: 2px solid #e175a4;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; gap: 12px;
+    }
+    .header-title { color: #e175a4; font-size: 11px; white-space: nowrap; font-family: 'Press Start 2P', monospace; }
+    .online-bar { display: flex; gap: 16px; align-items: center; }
+    .player-chip {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 13px; color: #ccc;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.on  { background: #00e676; box-shadow: 0 0 6px #00e676; }
+    .dot.off { background: #444; }
+    .logout-btn {
+      color: #888; font-size: 11px; text-decoration: none;
+      padding: 4px 8px; border: 1px solid #444; border-radius: 2px;
+      white-space: nowrap; font-family: 'Be Vietnam Pro', sans-serif;
+    }
+    .logout-btn:hover { color: #e175a4; border-color: #e175a4; }
+
+    /* ── Main layout ─────────────────────────────────────────────────────── */
+    .main { flex: 1; display: flex; overflow: hidden; }
+
+    /* ── Stats panel ─────────────────────────────────────────────────────── */
+    .stats-panel {
+      width: 264px; flex-shrink: 0;
+      background: linear-gradient(180deg, #1e0e2b 0%, #150920 100%);
+      border-right: 2px solid #e175a440;
+      display: flex; flex-direction: column;
+      padding: 12px; gap: 10px; overflow-y: auto;
+    }
+    .stats-panel::-webkit-scrollbar { width: 4px; }
+    .stats-panel::-webkit-scrollbar-thumb { background: #e175a4; border-radius: 2px; }
+
+    .panel-title {
+      color: #e175a4; font-size: 8px; text-align: center;
+      padding-bottom: 8px; border-bottom: 1px solid #e175a430;
+      font-family: 'Press Start 2P', monospace;
+    }
+    .char-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid #e175a430; border-radius: 6px;
+      padding: 10px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .char-name {
+      color: #fff; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .lv-badge {
+      font-size: 10px; background: #e175a450;
+      color: #e4a5c0; padding: 2px 5px; border-radius: 3px;
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    .bar-row { display: flex; flex-direction: column; gap: 2px; }
+    .bar-label { color: #888; font-size: 11px; display: flex; justify-content: space-between; }
+    .bar { height: 7px; background: #222; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+    .bar-fill.hp { background: linear-gradient(90deg, #ff4d4d, #ff8080); }
+    .bar-fill.mp { background: linear-gradient(90deg, #4d9fff, #80b3ff); }
+
+    .info-row {
+      display: flex; justify-content: space-between;
+      font-size: 12px;
+    }
+    .info-key { color: #999; }
+    .info-val { color: #ddd; max-width: 140px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .items-wrap { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 1px; }
+    .item-tag {
+      background: #e175a420; border: 1px solid #e175a450;
+      color: #e4a5c0; font-size: 11px; padding: 2px 6px; border-radius: 3px;
+    }
+    .items-empty { color: #555; font-size: 11px; font-style: italic; }
+
+    .new-game-btn {
+      margin-top: 4px; padding: 11px; width: 100%;
+      background: linear-gradient(135deg, #e175a4, #c44d8a);
+      color: #fff; border: none; cursor: pointer;
+      font-family: 'Press Start 2P', monospace; font-size: 8px;
+      border-radius: 4px; transition: opacity .2s;
+    }
+    .new-game-btn:hover { opacity: 0.85; }
+
+    /* ── Chat panels ─────────────────────────────────────────────────────── */
+    .chat-panels { flex: 1; display: flex; overflow: hidden; }
+
+    /* shared chat column */
+    .chat-col {
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .gm-col { flex: 1; border-right: 2px solid #eac0cf; background: #f6ebf1; }
+    .private-col { width: 260px; flex-shrink: 0; background: #fdf0f7; }
+
+    .chat-head {
+      flex-shrink: 0; padding: 10px 14px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600; color: #fff;
+      font-family: 'Press Start 2P', monospace;
+    }
+    .gm-col .chat-head   { background: #e175a4; }
+    .private-col .chat-head { background: #c44d8a; }
+
+    .typing-dot {
+      font-size: 11px; background: rgba(255,255,255,.25);
+      padding: 2px 7px; border-radius: 3px; display: none;
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+
+    .messages {
+      flex: 1; overflow-y: auto; padding: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .messages::-webkit-scrollbar { width: 5px; }
+    .messages::-webkit-scrollbar-thumb { background: #e175a4; border-radius: 3px; }
+
+    .bubble {
+      padding: 10px 14px; border-radius: 10px;
+      font-size: 14px; line-height: 1.7; max-width: 90%;
+      word-break: break-word; font-family: 'Be Vietnam Pro', sans-serif;
+    }
+    .bubble .meta { font-size: 11px; opacity: .6; margin-bottom: 4px; }
+
+    .bubble.gm {
+      background: #2d1b3d; color: #e4a5c0;
+      border: 1px solid #e175a440; align-self: flex-start;
+      max-width: 100%; white-space: pre-wrap;
+    }
+    .bubble.me {
+      background: linear-gradient(135deg, #e175a4, #e4a5c0);
+      color: #fff; align-self: flex-end; border-bottom-right-radius: 3px;
+    }
+    .bubble.other {
+      background: #f0e0ea; color: #333;
+      align-self: flex-start; border: 1px solid #eac0cf; border-bottom-left-radius: 3px;
+    }
+
+    .input-row {
+      flex-shrink: 0; padding: 10px;
+      border-top: 2px solid #eac0cf;
+      display: flex; gap: 8px;
+    }
+    .gm-col .input-row { background: #f6ebf1; }
+    .private-col .input-row { background: #fdf0f7; border-color: #f0b8d8; }
+
+    .input-row input {
+      flex: 1; padding: 9px 11px;
+      border: 2px solid #eac0cf; outline: none;
+      font-family: 'Be Vietnam Pro', sans-serif; font-size: 13px;
+      background: #fff; border-radius: 6px;
+    }
+    .private-col .input-row input { border-color: #f0b8d8; }
+    .input-row input:focus { border-color: #e175a4; }
+
+    .send-btn {
+      padding: 9px 14px;
+      background: linear-gradient(135deg, #e175a4, #e4a5c0);
+      color: #fff; border: none; cursor: pointer;
+      font-family: 'Press Start 2P', monospace; font-size: 8px;
+      border-radius: 6px; white-space: nowrap;
+    }
+    .private-col .send-btn { background: linear-gradient(135deg, #c44d8a, #e175a4); }
+    .send-btn:hover { opacity: .85; }
+
+    /* ── Modal ────────────────────────────────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.75);
+      display: none; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .overlay.show { display: flex; }
+    .modal {
+      background: #f6ebf1; border: 3px solid #eac0cf;
+      box-shadow: 6px 6px 0 #e175a4; padding: 28px; width: 400px;
+    }
+    .modal h2 { color: #e175a4; font-size: 11px; margin-bottom: 16px; font-family: 'Press Start 2P', monospace; }
+    .modal p  { color: #888; font-size: 13px; line-height: 1.7; margin-bottom: 16px; }
+    .modal label { display: block; font-size: 12px; color: #666; margin-bottom: 6px; }
+    .modal input {
+      width: 100%; padding: 11px;
+      border: 2px solid #eac0cf; outline: none;
+      font-family: 'Be Vietnam Pro', sans-serif; font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .modal input:focus { border-color: #e175a4; }
+    .modal-btns { display: flex; gap: 10px; margin-top: 12px; }
+    .modal-btns button {
+      flex: 1; padding: 12px;
+      font-family: 'Press Start 2P', monospace; font-size: 8px;
+      border: none; cursor: pointer; border-radius: 3px;
+    }
+    .btn-cancel { background: #ddd; color: #555; }
+    .btn-start  { background: linear-gradient(135deg,#e175a4,#c44d8a); color:#fff; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <span class="header-title">🕸️ Story Game</span>
+  <div class="online-bar" id="onlineBar"></div>
+  <a href="/" class="logout-btn" style="margin-right:8px">← Birthday</a>
+  <a href="/logout" class="logout-btn">✕ Thoát</a>
+</div>
+
+<div class="main">
+  <!-- Stats Panel -->
+  <div class="stats-panel">
+    <div class="panel-title">📊 NHÂN VẬT</div>
+
+    <!-- Cards generated by JS from state_update -->
+    <div id="charCards"></div>
+
+    <button class="new-game-btn" onclick="showModal()">🎲 Bắt Đầu Game Mới</button>
+  </div>
+
+  <!-- Chat Panels -->
+  <div class="chat-panels">
+
+    <!-- GM Chat -->
+    <div class="chat-col gm-col">
+      <div class="chat-head">
+        <span>🎲 Game Master</span>
+        <span class="typing-dot" id="gmTyping">đang viết...</span>
+      </div>
+      <div class="messages" id="gmMsgs">
+        <div class="bubble gm">
+          <div class="meta">🎲 Game Master</div>
+          Chào mừng đến Story Game! 🕸️<br><br>Nhấn <strong>Bắt Đầu Game Mới</strong> để Gemini Game Master tạo câu chuyện cho hai bạn.<br>Hoặc nhắn bất cứ điều gì để bắt đầu cuộc trò chuyện!
+        </div>
+      </div>
+      <div class="input-row">
+        <input id="gmInput" type="text" placeholder="Hành động / lựa chọn của bạn...">
+        <button class="send-btn" onclick="sendGm()">Gửi</button>
+      </div>
+    </div>
+
+    <!-- Private Chat -->
+    <div class="chat-col private-col">
+      <div class="chat-head">💬 Chat Riêng</div>
+      <div class="messages" id="privMsgs">
+        <div style="text-align:center;color:#bbb;font-size:8px;padding:20px;line-height:2">
+          Nhắn tin riêng cho nhau ở đây nhé 💕
+        </div>
+      </div>
+      <div class="input-row">
+        <input id="privInput" type="text" placeholder="Nhắn gì đó...">
+        <button class="send-btn" onclick="sendPriv()">Gửi</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- New Game Modal -->
+<div class="overlay" id="modal">
+  <div class="modal">
+    <h2>🎲 Game Mới</h2>
+    <p>⚠️ Bắt đầu game mới sẽ xóa toàn bộ lịch sử và reset nhân vật về trạng thái ban đầu.</p>
+    <label>Chủ đề / Setting của game</label>
+    <input id="themeInput" type="text" value="một cuộc phiêu lưu huyền bí">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="hideModal()">Hủy</button>
+      <button class="btn-start" onclick="startGame()">▶ Bắt Đầu!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config injected from server ───────────────────────────────────────────────
+const ME      = "{{ display }}";
+const MY_KEY  = "{{ username }}";
+const PLAYERS = {{ players_json | safe }};
+
+// ── Socket.IO ─────────────────────────────────────────────────────────────────
+const socket = io({ transports: ['websocket', 'polling'] });
+
+socket.on('connect', () => console.log('Connected', socket.id));
+
+socket.on('player_status', ({ online }) => {
+  const bar = document.getElementById('onlineBar');
+  bar.innerHTML = Object.entries(PLAYERS).map(([k, p]) => {
+    const on = online.includes(p.display);
+    return `<div class="player-chip">
+      <div class="dot ${on ? 'on' : 'off'}"></div>
+      <span>${p.icon} ${p.display}</span>
+    </div>`;
+  }).join('');
+});
+
+socket.on('state_update', chars => renderStats(chars));
+socket.on('game_msg',     msg   => appendGm(msg));
+socket.on('private_msg',  msg   => appendPriv(msg));
+socket.on('gm_typing',    v     => document.getElementById('gmTyping').style.display = v ? 'inline-block' : 'none');
+socket.on('game_clear',   ()    => { document.getElementById('gmMsgs').innerHTML = ''; });
+
+socket.on('history_load', history => {
+  const box = document.getElementById('gmMsgs');
+  box.innerHTML = '';
+  history.forEach(m => appendGm(m, false));
+  box.scrollTop = box.scrollHeight;
+});
+
+// ── Character Stats ───────────────────────────────────────────────────────────
+function renderStats(chars) {
+  const wrap = document.getElementById('charCards');
+  wrap.innerHTML = '';
+  for (const [key, c] of Object.entries(chars)) {
+    const info = PLAYERS[key] || { icon: '👤', display: c.name };
+    const hpPct = Math.max(0, Math.min(100, (c.hp / (c.maxHp || 1)) * 100));
+    const mpPct = Math.max(0, Math.min(100, (c.mp / (c.maxMp || 1)) * 100));
+    // HP bar color based on %
+    const hpColor = hpPct > 50 ? 'linear-gradient(90deg,#ff4d4d,#ff8080)'
+                  : hpPct > 25 ? 'linear-gradient(90deg,#ff8800,#ffaa44)'
+                  :              'linear-gradient(90deg,#cc0000,#ff4444)';
+    const items = (c.items && c.items.length)
+      ? c.items.map(i => `<span class="item-tag">${esc(i)}</span>`).join('')
+      : '<span class="items-empty">Trống</span>';
+
+    wrap.innerHTML += `
+      <div class="char-card" id="card-${key}">
+        <div class="char-name">
+          <span>${info.icon} ${esc(c.name)}</span>
+          <span class="lv-badge">LV ${c.level || 1}</span>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span>❤️ HP</span><span>${c.hp}/${c.maxHp}</span></div>
+          <div class="bar"><div class="bar-fill hp" style="width:${hpPct}%;background:${hpColor}"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label"><span>✨ MP</span><span>${c.mp}/${c.maxMp}</span></div>
+          <div class="bar"><div class="bar-fill mp" style="width:${mpPct}%"></div></div>
+        </div>
+        <div class="info-row"><span class="info-key">💰 Gold</span><span class="info-val">${c.gold || 0}</span></div>
+        <div class="info-row"><span class="info-key">📍 Nơi</span><span class="info-val">${esc(c.location || '?')}</span></div>
+        <div class="info-row"><span class="info-key">💫 Trạng thái</span><span class="info-val">${esc(c.status || '-')}</span></div>
+        <div class="info-key" style="margin-top:2px">🎒 Vật phẩm</div>
+        <div class="items-wrap">${items}</div>
+      </div>`;
+  }
+}
+
+// ── GM Chat ───────────────────────────────────────────────────────────────────
+function appendGm(msg, scroll = true) {
+  const box = document.getElementById('gmMsgs');
+  const div = document.createElement('div');
+  if (msg.type === 'gm') {
+    div.className = 'bubble gm';
+    div.innerHTML = `<div class="meta">🎲 Game Master · ${msg.ts}</div>${renderText(msg.text)}`;
+  } else if (msg.sender === ME) {
+    div.className = 'bubble me';
+    div.innerHTML = `<div class="meta">Tôi · ${msg.ts}</div>${esc(msg.text)}`;
+  } else {
+    div.className = 'bubble other';
+    div.innerHTML = `<div class="meta">${esc(msg.sender)} · ${msg.ts}</div>${esc(msg.text)}`;
+  }
+  box.appendChild(div);
+  if (scroll) box.scrollTop = box.scrollHeight;
+}
+
+function sendGm() {
+  const inp = document.getElementById('gmInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  socket.emit('game_message', { text });
+  inp.value = '';
+}
+
+// ── Private Chat ──────────────────────────────────────────────────────────────
+function appendPriv(msg) {
+  const box = document.getElementById('privMsgs');
+  const div = document.createElement('div');
+  div.className = `bubble ${msg.sender === ME ? 'me' : 'other'}`;
+  div.innerHTML = `<div class="meta">${msg.sender === ME ? 'Tôi' : esc(msg.sender)} · ${msg.ts}</div>${esc(msg.text)}`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function sendPriv() {
+  const inp = document.getElementById('privInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  socket.emit('private_message', { text });
+  inp.value = '';
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function showModal() { document.getElementById('modal').classList.add('show'); document.getElementById('themeInput').focus(); }
+function hideModal() { document.getElementById('modal').classList.remove('show'); }
+function startGame() {
+  const theme = document.getElementById('themeInput').value.trim() || 'một cuộc phiêu lưu huyền bí';
+  hideModal();
+  socket.emit('start_game', { theme });
+}
+
+// ── Key handlers ──────────────────────────────────────────────────────────────
+document.getElementById('gmInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendGm(); });
+document.getElementById('privInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendPriv(); });
+document.getElementById('themeInput').addEventListener('keydown', e => { if (e.key === 'Enter') startGame(); });
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function renderText(s) {
+  return esc(s).replace(/\n/g, '<br>');
+}
+</script>
+</body>
+</html>

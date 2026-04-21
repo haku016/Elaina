@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🕸️ Story Game – Đăng Nhập</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a0a10 0%, #2d1b3d 50%, #1a0a10 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+    .card {
+      background: #f6ebf1;
+      border: 3px solid #eac0cf;
+      box-shadow: 6px 6px 0 #e175a4;
+      padding: 36px 32px;
+      width: 360px;
+      text-align: center;
+    }
+    .logo { font-size: 36px; margin-bottom: 10px; }
+    h1 { color: #e175a4; font-size: 13px; margin-bottom: 6px; font-family: 'Press Start 2P', monospace; }
+    .sub { color: #bbb; font-size: 13px; margin-bottom: 28px; letter-spacing: 1px; }
+
+    label { display: block; font-size: 13px; color: #888; margin-bottom: 6px; text-align: left; }
+    select, input[type=password] {
+      width: 100%; padding: 12px 10px;
+      border: 2px solid #eac0cf; outline: none;
+      font-family: 'Be Vietnam Pro', sans-serif; font-size: 14px;
+      background: #fff; color: #333; margin-bottom: 18px;
+      appearance: none;
+    }
+    select:focus, input:focus { border-color: #e175a4; }
+
+    .btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #e175a4, #c44d8a);
+      color: #fff; border: none; cursor: pointer;
+      font-family: 'Press Start 2P', monospace; font-size: 10px;
+      letter-spacing: 1px; transition: opacity .2s;
+    }
+    .btn:hover { opacity: 0.85; }
+
+    .error {
+      margin-top: 16px; padding: 10px;
+      background: #ffe0e0; border: 1px solid #ffb0b0;
+      color: #cc0000; font-size: 13px; line-height: 1.6;
+    }
+
+    .hint { margin-top: 20px; color: #bbb; font-size: 12px; line-height: 1.8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">🕸️</div>
+    <h1>Story Game</h1>
+    <p class="sub">Joshua &amp; Elaina Adventure</p>
+
+    <form method="POST">
+      <label>Chọn nhân vật của bạn</label>
+      <select name="username" required>
+        <option value="">— Chọn nhân vật —</option>
+        {% for key, p in players.items() %}
+        <option value="{{ key }}">{{ p.icon }} {{ p.display }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Mã PIN</label>
+      <input type="password" name="pin" placeholder="••••" maxlength="8" required autocomplete="off">
+
+      <button type="submit" class="btn">▶ VÀO GAME</button>
+    </form>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <p class="hint">Liên hệ admin để nhận mã PIN của nhân vật.</p>
+    <a href="/lobby" class="hint" style="display:block;margin-top:12px;text-decoration:none;color:#888">← Quay lại Lobby</a>
+  </div>
+</body>
+</html>

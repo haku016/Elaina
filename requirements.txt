@@ -1,0 +1,12 @@
+# Elaina's Birthday – Python desktop app dependencies
+# Install with:  pip install -r requirements.txt
+
+PyQt6>=6.6.0
+PyQt6-WebEngine>=6.6.0
+python-dotenv>=1.0.0
+# flask is no longer needed – built-in http.server is used instead
+
+# Build-time only (needed for build.bat / elaina.spec)
+# pyinstaller>=6.0.0
+# pyinstaller-hooks-contrib>=2024.0
+# Pillow>=10.0.0

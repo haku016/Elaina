@@ -504,18 +504,32 @@ async function sendMessage() {
     typingBubble.innerHTML = 'Đang suy nghĩ<span class="dot-1">.</span><span class="dot-2">.</span><span class="dot-3">.</span>';
     typingBubble.id = 'typing-indicator';
     chatContent.appendChild(typingBubble);
-
-    // Scroll to bottom
     chatContent.scrollTop = chatContent.scrollHeight;
 
+    // Resolve API key (fetch from server if not cached)
+    const API_KEY = await getApiKey();
+    if (!API_KEY) {
+        const noKeyTyping = document.getElementById('typing-indicator');
+        if (noKeyTyping) noKeyTyping.remove();
+        const noKeyBubble = document.createElement('div');
+        noKeyBubble.className = 'chat-bubble bot error';
+        noKeyBubble.textContent = '\u26a0\ufe0f Ch\u01b0a c\u00e0i API key. Th\u00eam GEMINI_API_KEY v\u00e0o file .env r\u1ed3i kh\u1edfi \u0111\u1ed9ng l\u1ea1i app nh\u00e9!';
+        chatContent.appendChild(noKeyBubble);
+        chatContent.scrollTop = chatContent.scrollHeight;
+        return;
+    }
+
     try {
-        const API_KEY = (window.GEMINI_API_KEY || 'AIzaSyAMMRLolGBdT8uBwLMuvPrj96w8bfFPjJI');
         const API_BASE = 'https://generativelanguage.googleapis.com/v1'; //using v1
 
         // --- Detect story-driven game requests ---
         const isStoryGameRequest = userMessage.toLowerCase().includes("tạo một trò chơi story driven") || 
                                    userMessage.toLowerCase().includes("bắt đầu game") ||
-                                   userMessage.toLowerCase().includes("chơi game");
+                                   userMessage.toLowerCase().includes("chơi game") ||
+                                   userMessage.toLowerCase().includes("kể chuyện") ||
+                                   userMessage.toLowerCase().includes("câu truyện") ||
+                                   userMessage.toLowerCase().includes("kể cho mình") ||
+                                   userMessage.toLowerCase().includes("kể một");
 
         const promptText = isStoryGameRequest
             ? `Bạn là một Game Master chuyên nghiệp tạo trò chơi nhập vai story-driven với hiệu ứng butterfly effect.
@@ -580,7 +594,7 @@ Câu hỏi: ${userMessage}`;
             contents: [ { parts: [ { text: promptText } ] } ],
             generationConfig: {
                 temperature: isStoryGameRequest ? 0.85 : 0.9,
-                maxOutputTokens: isStoryGameRequest ? 8192 : 500,
+                maxOutputTokens: isStoryGameRequest ? 8192 : 2000,
                 topP: 0.95,
                 topK: 40 
             }
@@ -685,4 +699,10 @@ if (chatInput) {
             sendMessage();
         }
     });
+}
+
+// API key is injected synchronously into the page by the Python server.
+// getApiKey() just reads it directly – no fetch needed.
+async function getApiKey() {
+    return window.GEMINI_API_KEY || '';
 }

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story RPG — Lobby</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 50% 0%, #3a1040 0%, #0d0610 70%);
+      font-family: 'Be Vietnam Pro', sans-serif;
+      display: flex; flex-direction: column;
+      align-items: center; padding: 32px 16px;
+    }
+
+    /* ── Back link ── */
+    .back-link {
+      align-self: flex-start;
+      color: #888; font-size: 12px; text-decoration: none;
+      display: flex; align-items: center; gap: 6px;
+      margin-bottom: 32px; transition: color .2s;
+    }
+    .back-link:hover { color: #e175a4; }
+
+    /* ── Title ── */
+    .title-wrap { text-align: center; margin-bottom: 40px; }
+    .title-wrap .icon { font-size: 40px; display: block; margin-bottom: 12px; }
+    .title-wrap h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 16px; color: #e175a4;
+      text-shadow: 0 0 18px #e175a450;
+    }
+    .title-wrap p { color: #888; font-size: 13px; margin-top: 10px; }
+
+    /* ── Cards grid ── */
+    .cards {
+      display: flex; gap: 24px; flex-wrap: wrap;
+      justify-content: center; width: 100%; max-width: 840px;
+    }
+
+    .card {
+      background: rgba(255,255,255,.04);
+      border: 2px solid #e175a430;
+      border-radius: 10px; padding: 28px;
+      flex: 1; min-width: 280px; max-width: 380px;
+    }
+    .card-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px; color: #e175a4; margin-bottom: 18px;
+    }
+
+    /* URL display box */
+    .url-box {
+      background: #111; border: 1px solid #e175a430;
+      border-radius: 6px; padding: 10px 12px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .url-text {
+      color: #adf; font-size: 12px; word-break: break-all; flex: 1;
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
+    .copy-btn {
+      flex-shrink: 0; background: none; border: 1px solid #555;
+      color: #888; font-size: 11px; padding: 4px 8px; cursor: pointer;
+      border-radius: 4px; transition: all .2s;
+    }
+    .copy-btn:hover { color: #e175a4; border-color: #e175a4; }
+
+    .url-label { color: #666; font-size: 11px; margin-bottom: 6px; }
+
+    .tunnel-pending {
+      color: #888; font-size: 12px; font-style: italic;
+      padding: 8px 0; display: none;
+    }
+
+    .play-btn {
+      width: 100%; margin-top: 18px; padding: 14px;
+      background: linear-gradient(135deg, #e175a4, #c44d8a);
+      color: #fff; border: none; cursor: pointer;
+      font-family: 'Press Start 2P', monospace; font-size: 9px;
+      border-radius: 6px; transition: opacity .2s;
+    }
+    .play-btn:hover { opacity: .85; }
+
+    /* Join side */
+    .join-desc { color: #888; font-size: 13px; line-height: 1.7; margin-bottom: 18px; }
+    .join-input {
+      width: 100%; padding: 12px;
+      background: #111; border: 2px solid #e175a430;
+      color: #ddd; font-family: 'Be Vietnam Pro', sans-serif; font-size: 13px;
+      border-radius: 6px; outline: none;
+      transition: border-color .2s;
+    }
+    .join-input:focus { border-color: #e175a4; }
+    .join-input::placeholder { color: #444; }
+
+    /* ── Footer tip ── */
+    .tip {
+      margin-top: 36px; max-width: 640px; text-align: center;
+      color: #555; font-size: 12px; line-height: 1.8;
+      background: rgba(255,255,255,.02); border: 1px solid #2a1030;
+      border-radius: 8px; padding: 16px;
+    }
+    .tip strong { color: #888; }
+
+    /* toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #2a1030; border: 1px solid #e175a4;
+      color: #e4a5c0; font-size: 13px; padding: 10px 20px;
+      border-radius: 6px; opacity: 0; transition: opacity .3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-link">← Quay lại Birthday</a>
+
+  <div class="title-wrap">
+    <span class="icon">🕸️</span>
+    <h1>Story RPG</h1>
+    <p>Chọn cách bạn muốn chơi</p>
+  </div>
+
+  <div class="cards">
+
+    <!-- HOST card -->
+    <div class="card">
+      <div class="card-title">🖥️ Tôi là Host</div>
+
+      <div class="url-label">Cùng WiFi — chia sẻ link này:</div>
+      <div class="url-box">
+        <span class="url-text" id="localUrl">{{ local_url }}</span>
+        <button class="copy-btn" onclick="copy('localUrl')">Copy</button>
+      </div>
+
+      <div class="url-label" id="publicLabel">
+        Internet (ngrok) — chia sẻ link này:
+      </div>
+      <div class="url-box" id="publicBox">
+        <span class="url-text" id="publicUrl">
+          {% if tunnel_url %}
+            {{ tunnel_url }}
+          {% else %}
+            <em style="color:#555">Đang tạo tunnel...</em>
+          {% endif %}
+        </span>
+        <button class="copy-btn" id="copyPublic"
+                onclick="copy('publicUrl')"
+                {% if not tunnel_url %}disabled style="opacity:.4"{% endif %}>Copy</button>
+      </div>
+      <div class="tunnel-pending" id="tunnelPending">
+        Chưa cấu hình ngrok — xem hướng dẫn bên dưới.
+      </div>
+
+      <button class="play-btn" onclick="location.href='/login'">▶ Chơi với tư cách Host</button>
+    </div>
+
+    <!-- JOIN card -->
+    <div class="card">
+      <div class="card-title">🌐 Tham gia Game</div>
+      <p class="join-desc">
+        Nhập URL mà Player 1 (Host) chia sẻ cho bạn.<br>
+        Có thể là IP WiFi hoặc link ngrok.
+      </p>
+      <input class="join-input" id="joinUrl" type="url"
+             placeholder="http://192.168.x.x:5050  hoặc  https://xxxx.ngrok-free.app"
+             onkeydown="if(event.key==='Enter')joinGame()">
+      <button class="play-btn" onclick="joinGame()">→ Vào Game của Host</button>
+    </div>
+
+  </div>
+
+  <!-- Tip -->
+  <div class="tip">
+    <strong>Chơi qua internet:</strong><br>
+    1. Đăng ký miễn phí tại <strong>ngrok.com</strong> → lấy authtoken<br>
+    2. Thêm <code style="color:#adf">NGROK_AUTHTOKEN=xxx</code> vào file <strong>.env</strong><br>
+    3. Khởi động lại app — link ngrok sẽ tự xuất hiện ở trên
+  </div>
+
+  <div class="toast" id="toast">Đã sao chép!</div>
+
+  <script>
+    // Poll for tunnel URL if not yet available
+    {% if not tunnel_url %}
+    let _pollCount = 0;
+    const _poll = setInterval(async () => {
+      _pollCount++;
+      try {
+        const r  = await fetch('/api/tunnel');
+        const d  = await r.json();
+        if (d.public) {
+          document.getElementById('publicUrl').textContent = d.public;
+          document.getElementById('copyPublic').disabled   = false;
+          document.getElementById('copyPublic').style.opacity = '1';
+          clearInterval(_poll);
+        } else if (_pollCount > 20) {
+          // Give up after ~40s — ngrok not configured
+          document.getElementById('publicBox').style.display  = 'none';
+          document.getElementById('publicLabel').style.display = 'none';
+          document.getElementById('tunnelPending').style.display = 'block';
+          clearInterval(_poll);
+        }
+      } catch (_) {}
+    }, 2000);
+    {% endif %}
+
+    function copy(id) {
+      const el  = document.getElementById(id);
+      const txt = el.textContent.trim();
+      navigator.clipboard.writeText(txt).then(() => {
+        const t = document.getElementById('toast');
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2000);
+      });
+    }
+
+    function joinGame() {
+      let url = document.getElementById('joinUrl').value.trim().replace(/\/$/, '');
+      if (!url) return;
+      if (!url.startsWith('http')) url = 'http://' + url;
+      window.location.href = url + '/login';
+    }
+  </script>
+</body>
+</html>
