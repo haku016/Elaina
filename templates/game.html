@@ -160,10 +160,20 @@
     .input-row {
       flex-shrink: 0; padding: 10px;
       border-top: 2px solid #eac0cf;
-      display: flex; gap: 8px;
+      display: flex; gap: 8px; flex-direction: column;
     }
+    .input-row .input-inner { display: flex; gap: 8px; }
     .gm-col .input-row { background: #f6ebf1; }
     .private-col .input-row { background: #fdf0f7; border-color: #f0b8d8; }
+
+    /* turn status bar */
+    .turn-status {
+      font-size: 11px; padding: 5px 8px; border-radius: 5px;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      display: none; text-align: center; font-weight: 600;
+    }
+    .turn-status.waiting  { display: block; background: #fff3cd; color: #856404; border: 1px solid #ffd966; }
+    .turn-status.submitted { display: block; background: #d4edda; color: #155724; border: 1px solid #9ed4a9; }
 
     .input-row input {
       flex: 1; padding: 9px 11px;
@@ -173,6 +183,7 @@
     }
     .private-col .input-row input { border-color: #f0b8d8; }
     .input-row input:focus { border-color: #e175a4; }
+    .input-row input:disabled { background: #f0e0ea; color: #999; cursor: not-allowed; }
 
     .send-btn {
       padding: 9px 14px;
@@ -251,8 +262,11 @@
         </div>
       </div>
       <div class="input-row">
-        <input id="gmInput" type="text" placeholder="Hành động / lựa chọn của bạn...">
-        <button class="send-btn" onclick="sendGm()">Gửi</button>
+        <div class="turn-status" id="turnStatus"></div>
+        <div class="input-inner">
+          <input id="gmInput" type="text" placeholder="Hành động / lựa chọn của bạn...">
+          <button class="send-btn" id="gmSendBtn" onclick="sendGm()">Gửi</button>
+        </div>
       </div>
     </div>
 
@@ -313,7 +327,43 @@ socket.on('state_update', chars => renderStats(chars));
 socket.on('game_msg',     msg   => appendGm(msg));
 socket.on('private_msg',  msg   => appendPriv(msg));
 socket.on('gm_typing',    v     => document.getElementById('gmTyping').style.display = v ? 'inline-block' : 'none');
-socket.on('game_clear',   ()    => { document.getElementById('gmMsgs').innerHTML = ''; });
+socket.on('game_clear',   ()    => { document.getElementById('gmMsgs').innerHTML = ''; setTurnIdle(); });
+
+// ── Turn-based dual-action status ─────────────────────────────────────────────
+socket.on('turn_status', ({ waiting, submitted, waiting_for }) => {
+  const bar  = document.getElementById('turnStatus');
+  const inp  = document.getElementById('gmInput');
+  const btn  = document.getElementById('gmSendBtn');
+  if (!waiting) {
+    setTurnIdle();
+  } else if (submitted && submitted.includes(ME)) {
+    // I already submitted — lock my input, show who we're waiting for
+    bar.className = 'turn-status submitted';
+    bar.textContent = `✅ Đã gửi! Đang chờ ${waiting_for.join(', ')} hành động...`;
+    inp.disabled = true;
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+  } else {
+    // Someone else submitted — prompt me to act
+    bar.className = 'turn-status waiting';
+    bar.textContent = `⏳ ${submitted.join(', ')} đã hành động — lượt của bạn!`;
+    inp.disabled = false;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    inp.focus();
+  }
+});
+
+function setTurnIdle() {
+  const bar = document.getElementById('turnStatus');
+  const inp = document.getElementById('gmInput');
+  const btn = document.getElementById('gmSendBtn');
+  bar.className = 'turn-status';
+  bar.textContent = '';
+  inp.disabled = false;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+}
 
 socket.on('history_load', history => {
   const box = document.getElementById('gmMsgs');

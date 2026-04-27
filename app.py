@@ -126,10 +126,11 @@ def _fresh_char(name):
                 level=1, gold=0, items=[], status='Bình thường', location='Khởi đầu')
 
 game_state = {
-    'chars':   {k: _fresh_char(v['display']) for k, v in PLAYERS.items()},
-    'online':  {},
-    'history': [],
-    'active':  False,
+    'chars':           {k: _fresh_char(v['display']) for k, v in PLAYERS.items()},
+    'online':          {},
+    'history':         [],
+    'active':          False,
+    'pending_actions': {},   # {display_name: action_text} — collects both players' actions
 }
 
 _GEMINI_BASE   = 'https://generativelanguage.googleapis.com'
@@ -137,10 +138,12 @@ _model_cache: tuple | None = None
 _model_lock    = threading.Lock()
 
 _PREFERRED_MODELS = [
-    ('v1beta', 'gemini-2.0-flash'),
-    ('v1beta', 'gemini-1.5-flash'),
-    ('v1',     'gemini-1.5-flash'),
-    ('v1beta', 'gemini-pro'),
+    # Ranked by live benchmark (fastest responding first)
+    ('v1beta', 'gemini-2.5-flash-lite'),      # 1.03s  ✓
+    ('v1beta', 'gemini-3-flash-preview'),      # 1.58s  ✓
+    ('v1beta', 'gemini-2.5-flash'),            # ~2s    ✓ (sometimes 503)
+    ('v1beta', 'gemini-3.1-flash-lite-preview'), # 8.6s  ✓ (slow fallback)
+    ('v1beta', 'gemini-flash-latest'),         # last resort
 ]
 
 
@@ -205,11 +208,18 @@ def _build_contents(history, extra_user=None):
     return contents
 
 
-def _call_gemini(contents, max_tokens=4096, _retry=True):
+def _call_gemini(contents, max_tokens=4096, _tried: set | None = None):
     key = os.environ.get('GEMINI_API_KEY', '')
     if not key:
         return 'Chưa cài API key Gemini. Thêm GEMINI_API_KEY vào file .env rồi khởi động lại nhé!'
+    if _tried is None:
+        _tried = set()
     ver, model = _get_model(key)
+    if model in _tried:
+        print(f'[Gemini] All candidates tried {_tried}, giving up.')
+        return 'Gemini hiện đang bận, vui lòng thử lại sau ít phút nhé!'
+    _tried.add(model)
+    print(f'[Gemini] Trying {ver}/{model} (tried so far: {_tried})')
     api_url = f'{_GEMINI_BASE}/{ver}/models/{model}:generateContent?key={key}'
     payload = json.dumps({
         'contents': contents,
@@ -218,20 +228,53 @@ def _call_gemini(contents, max_tokens=4096, _retry=True):
     req = urllib.request.Request(
         api_url, data=payload,
         headers={'Content-Type': 'application/json'}, method='POST')
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            return json.loads(r.read())['candidates'][0]['content']['parts'][0]['text']
-    except urllib.error.HTTPError as e:
-        err_body = e.read().decode(errors='ignore')[:300]
-        if e.code == 404 and _retry:
-            # Model not found — clear cache and retry with next candidate
-            global _model_cache
+    for attempt in range(3):
+        try:
+            t0 = time.time()
+            with urllib.request.urlopen(req, timeout=60) as r:
+                resp = json.loads(r.read())
+            elapsed = time.time() - t0
+            # Extract text — skip thought parts (thinking models return thought=True parts)
+            parts = resp['candidates'][0]['content'].get('parts', [])
+            text = next((p['text'] for p in parts if not p.get('thought')), None)
+            if text is None:
+                raise KeyError('No non-thought parts in response')
+            print(f'[Gemini] OK {ver}/{model} in {elapsed:.2f}s')
+            return text
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode(errors='ignore')[:300]
+            print(f'[Gemini] HTTP {e.code} from {model} (attempt {attempt+1}): {err_body[:120]}')
+            if e.code == 429:
+                wait = 15 * (attempt + 1)
+                print(f'[Gemini] Rate limited, waiting {wait}s...')
+                time.sleep(wait)
+                continue
+            if e.code in (404, 503):
+                print(f'[Gemini] {e.code} — switching to next model')
+                with _model_lock:
+                    global _model_cache
+                    _model_cache = None
+                    for v, n in _PREFERRED_MODELS:
+                        if n not in _tried:
+                            _model_cache = (v, n)
+                            break
+                return _call_gemini(contents, max_tokens, _tried)
+            return f'Lỗi API {e.code}: {err_body}'
+        except (KeyError, IndexError) as exc:
+            print(f'[Gemini] Bad response shape from {model}: {exc}')
+            # Try next model
             with _model_lock:
                 _model_cache = None
-            return _call_gemini(contents, max_tokens, _retry=False)
-        return f'Lỗi API {e.code}: {err_body}'
-    except Exception as exc:
-        return f'Lỗi kết nối Gemini: {exc}'
+                for v, n in _PREFERRED_MODELS:
+                    if n not in _tried:
+                        _model_cache = (v, n)
+                        break
+            return _call_gemini(contents, max_tokens, _tried)
+        except Exception as exc:
+            print(f'[Gemini] Exception from {model}: {exc}')
+            return f'Lỗi kết nối Gemini: {exc}'
+    print(f'[Gemini] Rate limit exhausted for {model}')
+    return 'Gemini đang bận (rate limit), vui lòng thử lại sau 1 phút.'
 
 
 def _parse_stats(text):
@@ -403,12 +446,44 @@ def _sio_game_msg(data):
     text = (data.get('text') or '').strip()
     if not text:
         return
-    ts  = datetime.now().strftime('%H:%M')
-    msg = {'type': 'player', 'sender': session['display'], 'text': text, 'ts': ts}
+    ts      = datetime.now().strftime('%H:%M')
+    display = session['display']
+    msg = {'type': 'player', 'sender': display, 'text': text, 'ts': ts}
     game_state['history'].append(msg)
     emit('game_msg', msg, to='game')
-    contents = _build_contents(game_state['history'][:-1], f"{session['display']}: {text}")
-    threading.Thread(target=_gm_thread, args=(contents,), daemon=True).start()
+
+    num_online = len(game_state['online'])   # how many players connected
+    pending    = game_state['pending_actions']
+
+    # --- Dual-action mode: both players online ---
+    if num_online >= 2:
+        pending[display] = text
+        both_displays = [v['display'] for v in PLAYERS.values()]
+
+        if len(pending) < 2:
+            # First player submitted — tell everyone who is waiting
+            waiting_for = [n for n in both_displays if n not in pending]
+            _sio.emit('turn_status', {
+                'waiting': True,
+                'submitted': list(pending.keys()),
+                'waiting_for': waiting_for,
+            }, to='game')
+        else:
+            # Both actions received — build combined prompt and call GM
+            p1_disp, p2_disp = both_displays
+            combined = (
+                f'{p1_disp}: {pending.get(p1_disp, "(chưa có hành động)")}\n'
+                f'{p2_disp}: {pending.get(p2_disp, "(chưa có hành động)")}'
+            )
+            game_state['pending_actions'] = {}   # reset for next turn
+            _sio.emit('turn_status', {'waiting': False}, to='game')
+            contents = _build_contents(game_state['history'][:-1], combined)
+            threading.Thread(target=_gm_thread, args=(contents,), daemon=True).start()
+    else:
+        # Solo mode — trigger GM immediately
+        game_state['pending_actions'] = {}
+        contents = _build_contents(game_state['history'][:-1], f"{display}: {text}")
+        threading.Thread(target=_gm_thread, args=(contents,), daemon=True).start()
 
 @_sio.on('private_message')
 def _sio_private(data):
@@ -427,8 +502,9 @@ def _sio_start(data):
     theme = (data.get('theme') or 'phiêu lưu huyền bí').strip()
     for k, v in PLAYERS.items():
         game_state['chars'][k] = _fresh_char(v['display'])
-    game_state['history'] = []
-    game_state['active']  = False
+    game_state['history']         = []
+    game_state['active']          = False
+    game_state['pending_actions'] = {}
     _sio.emit('state_update', game_state['chars'], to='game')
     _sio.emit('game_clear', {}, to='game')
     p1, p2 = [v['display'] for v in PLAYERS.values()]

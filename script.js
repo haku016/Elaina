@@ -457,7 +457,7 @@ let __geminiModelCache = null;
 async function getSupportedGeminiModels(API_BASE, API_KEY) {
     if (__geminiModelCache) return __geminiModelCache;
 
-    const preferred = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.0-pro'];
+    const preferred = ['gemini-2.5-flash-lite', 'gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-3.1-flash-lite-preview'];
     const listUrl = `${API_BASE}/models?key=${API_KEY}`;
 
     try {
@@ -520,7 +520,7 @@ async function sendMessage() {
     }
 
     try {
-        const API_BASE = 'https://generativelanguage.googleapis.com/v1'; //using v1
+        const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
         // --- Detect story-driven game requests ---
         const isStoryGameRequest = userMessage.toLowerCase().includes("tạo một trò chơi story driven") || 
@@ -617,8 +617,8 @@ Câu hỏi: ${userMessage}`;
 
             if (response.ok) break;
 
-            // Try next model on "not found / not supported"
-            if (response.status === 404) {
+            // Retry on 404 (model not found) or 503 (overloaded) — try next model
+            if (response.status === 404 || response.status === 503) {
                 lastErrorText = await response.text().catch(() => '');
                 continue;
             }
