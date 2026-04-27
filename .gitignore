@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.spec
+*_backup.*
+*.bak
+*.txt
