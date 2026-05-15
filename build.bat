@@ -1,7 +1,7 @@
 @echo off
 :: ──────────────────────────────────────────────────────────────────────────
 :: Elaina's Birthday – build .exe
-:: Run this once to produce dist\ElainaBirthday\ElainaBirthday.exe
+:: Run this once to produce dist\App\App.exe
 :: ──────────────────────────────────────────────────────────────────────────
 
 cd /d "%~dp0"
@@ -32,7 +32,7 @@ if errorlevel 1 (
 echo.
 echo [3/3] Copying .env into the output folder...
 if exist ".env" (
-    copy /Y ".env" "dist\ElainaBirthday\.env" >nul
+    copy /Y ".env" "dist\App\.env" >nul
     echo     .env copied.
 ) else (
     echo     WARNING: .env not found – chat AI will not work until you add it.
@@ -41,12 +41,12 @@ if exist ".env" (
 echo.
 echo ══════════════════════════════════════════════════════
 echo  BUILD COMPLETE
-echo  Executable:  dist\ElainaBirthday\ElainaBirthday.exe
+echo  Executable:  dist\App\App.exe
 echo.
 echo  To use on another computer:
-echo    1. Copy the entire dist\ElainaBirthday\ folder
+echo    1. Copy the entire dist\App\ folder
 echo    2. Edit .env inside that folder
 echo    3. Add your Gemini API key  (https://aistudio.google.com/apikey)
-echo    4. Double-click ElainaBirthday.exe
+echo    4. Double-click App.exe
 echo ══════════════════════════════════════════════════════
 pause

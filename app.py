@@ -369,9 +369,34 @@ def _serve_birthday_static(filename):
     mime = mimetypes.guess_type(filepath)[0] or 'application/octet-stream'
     if mime.startswith('text/'):
         mime = mime.split(';')[0] + '; charset=utf-8'
+
+    file_size = os.path.getsize(filepath)
+    range_header = request.headers.get('Range')
+
+    if range_header:
+        m = re.match(r'bytes=(\d+)-(\d*)', range_header)
+        if m:
+            start = int(m.group(1))
+            end = int(m.group(2)) if m.group(2) else file_size - 1
+            end = min(end, file_size - 1)
+            length = end - start + 1
+            with open(filepath, 'rb') as f:
+                f.seek(start)
+                data = f.read(length)
+            headers = {
+                'Content-Range': f'bytes {start}-{end}/{file_size}',
+                'Accept-Ranges': 'bytes',
+                'Content-Length': str(length),
+            }
+            return Response(data, 206, headers=headers, mimetype=mime)
+
     with open(filepath, 'rb') as f:
         data = f.read()
-    return Response(data, mimetype=mime)
+    headers = {
+        'Accept-Ranges': 'bytes',
+        'Content-Length': str(file_size),
+    }
+    return Response(data, mimetype=mime, headers=headers)
 
 
 # ── Lobby (host / join chooser) ───────────────────────────────────────────────

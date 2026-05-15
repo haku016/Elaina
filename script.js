@@ -20,9 +20,13 @@ function openWindow(id) {
     // Tự động phát nhạc khi mở cửa sổ
     const music = document.getElementById("music" + id);
     if (music) {
-        music.play().catch(error => {
-            console.log("Tự động phát bị chặn, hãy tương tác với trang trước: ", error);
-        });
+        if (id === 6) {
+            if (window.playAnni6) window.playAnni6();
+        } else {
+            music.play().catch(error => {
+                console.log("Tự động phát bị chặn, hãy tương tác với trang trước: ", error);
+            });
+        }
     }
 }
 
@@ -235,6 +239,85 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // ----- Album 6 (Anniversary) -----
+  const album6 = [
+    {
+  image: "anni_1/images/1.jpg",
+  text: "⋆｡‧˚ʚ ୨ৎ ɞ˚‧｡⋆ Happy Anniversary 1 Year Together!!!! ⋆｡‧˚ʚ ୨ৎ ɞ˚‧｡⋆\n\nNếu cuộc đời là một cuốn phim thì chắc tụi mình mới chỉ đi qua phần mở đầu thôi.\n\nTụi mình hay nói về chuyện gặp nhau có đúng thời điểm hay không, và mình luôn nghĩ là có.\n\nCó lẽ vì tụi mình gặp nhau ở một giai đoạn rất lạ. Không còn quá trẻ để vô tư với mọi thứ, nhưng cũng chưa đủ trưởng thành để hiểu hết chính mình.\n\nTụi mình đều có những phần đẹp đẽ và cả những phần không hoàn hảo.\n\nMình có những góc tối, bạn cũng có những vết xước mà đôi khi chẳng biết phải giấu đi đâu.\n\nThế giới này cũng không đẹp lắm, mình biết, bạn cũng biết. Có những ngày nhìn ra ngoài chỉ thấy mọi thứ trôi qua rất nhanh và chẳng có gì khiến người ta muốn dừng lại lâu hơn một chút.\n\nNhưng giữa một thế giới như vậy, tụi mình lại tìm được nhau.\n\nGiống như bài hát này vậy. Không phải kiểu “bạn đã cứu rỗi đời mình” thật lớn lao, mà chỉ là cảm giác cuối cùng cũng có một người nhìn thấy mình, kể cả những phần không hoàn hảo nhất.\n\nNhờ có bạn, mình bắt đầu thấy cuộc đời này dịu dàng hơn mình từng nghĩ. Những ngày bình thường cũng trở nên đáng nhớ hơn. Những điều mình từng muốn bỏ qua, giờ lại muốn trải nghiệm cùng bạn thêm một lần nữa.\n\nNghe hơi dài dòng một chút nhỉ. Nhưng mình nghĩ đây là cách phù hợp nhất để bắt đầu câu chuyện của tụi mình.\n\nMột năm không quá dài để nói lên tất cả, nhưng đủ để mình biết rằng gặp được bạn là điều may mắn thật sự.",
+  audio: "anni_1/music/1.mp3",
+  startTime: 112
+},
+    {
+  image: "anni_1/images/2.jpg",
+  text: "Mình thì giống như truyện tranh vậy. Nhiều màu sắc, nhiều chữ, cảm xúc gì cũng muốn kể cho bạn nghe hết.\n\nBạn thì ít nói hơn, vì cũng không có thời gian nhiều\n\nĐôi lúc mình cũng nhớ những khi được nghe bạn chia sẻ nhiều hơn một chút. Nhưng rồi mình nhận ra mình không muốn bạn phải thay đổi chỉ để trở thành phiên bản phù hợp với mình hơn.\n\nĐiều mình học được sau khi yêu bạn là, yêu một người thật ra cũng là học cách yêu theo điều người đó cần.\n\nBạn cần những lời nói rõ ràng hơn, nên mình đang tập nói ra nhiều hơn những điều trước đây mình hay giữ lại.\n\nCòn mình thì cần thời gian. Những lúc tụi mình thật sự ở cạnh nhau, không bị thế giới ngoài kia chen vào. Cùng đi đâu đó hoặc là chia sẻ những điều nhỏ nhặt trong ngày thì mình cảm thấy được yêu thương rồi.\n\nDù tụi mình khác nhau, mình vẫn muốn cùng bạn học cách hiểu nhau thêm từng chút một.\n\nHọc cách yêu bằng ngôn ngữ của người kia.\n\nĐể không có gì phải đổi thay.",
+  audio: "anni_1/music/2.mp3",
+  startTime: 89
+},
+   {
+  image: "anni_1/images/3.jpg",
+  text: "Tụi mình cũng có những lần cãi nhau, có những lúc im lặng rất lâu chỉ vì không biết phải nói gì tiếp theo.\n\nCó lúc mình đã tự hỏi không biết tụi mình có đang hiểu nhau thật không\n\nNhưng rồi mình nhận ra điều làm mình vẫn ở đây chưa bao giờ là vì tụi mình không có vấn đề.\n\nMà là vì sau tất cả những lần khó hiểu nhau như vậy, tụi mình vẫn chọn quay lại ngồi cạnh nhau.\n\nMình nghĩ tình yêu đôi khi không nằm ở việc chưa từng làm nhau buồn.\n\nMà nằm ở việc giữa rất nhiều cảm xúc lộn xộn, mình vẫn muốn hiểu bạn thêm một chút, vẫn muốn nắm tay bạn thêm lần nữa.\n\nVà dù đôi khi tụi mình làm nhau mệt, mình chưa từng thấy những lần cãi nhau đó là vô nghĩa.\n\nNó giống như cách tụi mình đang học cách lớn lên cùng nhau vậy.\n\nChậm một chút cũng được.\n\nChỉ cần cuối cùng người đứng cạnh mình vẫn là bạn.",
+  audio: "anni_1/music/3.mp3",
+  startTime: 168
+},
+   {
+  image: "anni_1/images/4.jpg",
+  text: "Mình muốn có một tình yêu thật đáng để nhớ.\n\nKiểu sau này nhìn lại, tụi mình có thể nói với nhau là “ừ, tụi mình đã thật sự sống trong quãng thời gian đó”.\n\nNên mình cũng đang cố gắng rất nhiều.\n\nMuốn cùng bạn đi nhiều nơi hơn, trải nghiệm nhiều thứ hơn, làm những chuyện ngớ ngẩn mà bình thường mình sẽ chẳng bao giờ làm.\n\nMình muốn có những ý tưởng quay cái này cái kia bất chợt, những ngày cùng nhau ăn một món ngon rồi nhớ mãi không quên.\n\nCó thể tụi mình sẽ trông hơi ngốc khi yêu nhau như vậy.\n\nMình chỉ muốn sau này khi nghĩ về tuổi trẻ của mình, trong đó luôn có bbi",
+  audio: "anni_1/music/4.mp3",
+  startTime: 13
+},
+    {
+  image: "anni_1/images/5.jpg",
+  text: "Nghe tên bài này làm mình nghĩ tới jealous.\n\nThật ra trong tình yêu tụi mình cũng từng có những lúc như vậy mà ha.\n\nBạn có những điều khiến mình ghen tị một chút.\n\nBạn giỏi hơn bạn nghĩ rất nhiều, cũng đẹp hơn những gì bạn tự nhìn thấy ở bản thân nữa.\n\nNên đôi khi mình chỉ mong bạn đừng nghi ngờ chính mình nhiều quá.\n\nCòn mình thì cũng có những lúc bất an, những lúc sợ không đủ tốt, sợ không giữ được những điều mình trân trọng.\n\nNhưng sau tất cả, tụi mình vẫn đang ở đây.\n\nMình nghĩ điều đẹp nhất không phải là chưa từng có những cảm xúc xấu xí, mà là dù có như thế tụi mình vẫn chọn tin nhau thêm một chút.\n\nCó những chuyện từng làm tụi mình buồn, từng khiến cả hai khó xử, nhưng vượt qua rồi mới thấy… tình yêu của tụi mình cũng đáng để người khác thán phục đó chứ.\n\nBiết đâu sau này sẽ có ai nhìn tụi mình rồi ghen tị thì sao.\n\nCảm ơn bạn vì đã ở đây suốt một năm vừa rồi.\n\nCảm ơn vì đã yêu mình, kiên nhẫn với mình, và cùng mình đi qua rất nhiều rất nhiều thứ.\n\nHappy Anniversary nhaaaa!!! ₊˚⊹ ᰔɞ˚‧｡⋆",
+  audio: "anni_1/music/6.mp3",
+  startTime: 35
+},
+  ];
+  let albumIndex6 = 0;
+  const albumImage6 = document.getElementById("albumImage6");
+  const albumText6  = document.getElementById("albumText6");
+  const anni6Audio  = document.getElementById("music6");
+
+  function loadAlbum6(index, autoPlay = false) {
+    const item = album6[index];
+    if (!albumImage6 || !albumText6) return;
+    albumImage6.src = item.image;
+    albumText6.innerText = item.text;
+    albumText6.scrollTop = 0;
+
+    if (anni6Audio && autoPlay) {
+      // #t= fragment bảo browser tự seek trước khi phát, giống mẫu Spider Tune
+      anni6Audio.src = item.startTime > 0
+        ? item.audio + '#t=' + item.startTime
+        : item.audio;
+      anni6Audio.play().catch(e => console.log("Autoplay blocked:", e));
+    }
+  }
+
+  window.playAnni6 = function() {
+    const item = album6[albumIndex6];
+    if (!anni6Audio) return;
+    anni6Audio.pause();
+    anni6Audio.src = item.audio;
+    anni6Audio.addEventListener('loadedmetadata', function onMeta() {
+      anni6Audio.removeEventListener('loadedmetadata', onMeta);
+      anni6Audio.currentTime = item.startTime;
+      anni6Audio.play().catch(e => console.log("Autoplay blocked:", e));
+    });
+    anni6Audio.load();
+  };
+
+  window.nextAlbum6 = function() {
+    albumIndex6 = (albumIndex6 + 1) % album6.length;
+    loadAlbum6(albumIndex6, true);
+  };
+  window.prevAlbum6 = function() {
+    albumIndex6 = (albumIndex6 - 1 + album6.length) % album6.length;
+    loadAlbum6(albumIndex6, true);
+  };
+
+  // Init: chỉ hiển thị ảnh/text, không phát nhạc
+  if (albumImage6) loadAlbum6(albumIndex6, false);
 });
 
 // Chat Box Functionality
@@ -255,6 +338,11 @@ function toggleChat() {
     if (!chatBox.classList.contains('hidden')) {
         if (chatInput) chatInput.focus();
     }
+}
+
+function toggleGuideline() {
+    const box = document.getElementById('guidelineBox');
+    if (box) box.classList.toggle('hidden');
 }
 
 // Update stats panel
