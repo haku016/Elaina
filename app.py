@@ -766,7 +766,7 @@ class BirthdayWindow(QMainWindow):
         self._upd_timer.stop()
         reply = QMessageBox.question(
             self,
-            '✨ Cập nhật mới!',
+            'Cập nhật mới!',
             f'Có bản cập nhật mới <b>v{latest}</b> cho Elaina!<br><br>Cập nhật ngay không?<br><i>(App sẽ tự restart sau khi tải xong)</i>',
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
