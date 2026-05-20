@@ -15,6 +15,9 @@ For internet play add to .env:
 import sys
 import os
 import re
+import queue
+import shutil
+import zipfile
 import threading
 import socket
 import time
@@ -25,11 +28,17 @@ import urllib.parse
 import urllib.request
 import urllib.error
 from datetime import datetime
-from PyQt6.QtWidgets import QApplication, QMainWindow, QSplashScreen
+from PyQt6.QtWidgets import QApplication, QMainWindow, QSplashScreen, QMessageBox, QProgressDialog
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineSettings, QWebEngineProfile
 from PyQt6.QtCore import QUrl, Qt, QTimer
 from PyQt6.QtGui import QIcon, QPixmap
+
+# ── OTA Auto-Updater ─────────────────────────────────────────────────────────
+# Set VERSION before each build, set _GITHUB_REPO to 'user/repo' to enable OTA
+VERSION      = '1.0.0'
+_GITHUB_REPO = ''          # e.g. 'joshua/elaina-app'
+_update_queue: 'queue.Queue[tuple[str, str]]' = queue.Queue()
 
 # ── Load API key from .env ──────────────────────────────────────────────────
 # Determine directory: next to the .exe when frozen, next to app.py otherwise
@@ -133,6 +142,39 @@ game_state = {
     'pending_actions': {},   # {display_name: action_text} — collects both players' actions
 }
 
+# ── Save / Load progress ──────────────────────────────────────────────────────
+_SAVE_FILE = os.path.join(_env_dir, 'game_save.json')
+
+
+def _save_state():
+    try:
+        data = {
+            'chars':   game_state['chars'],
+            'history': game_state['history'][-200:],
+            'active':  game_state['active'],
+        }
+        with open(_SAVE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f'[Save] Saved ({len(game_state["history"])} messages)')
+    except Exception as exc:
+        print(f'[Save] Failed: {exc}')
+
+
+def _load_state():
+    try:
+        if os.path.isfile(_SAVE_FILE):
+            with open(_SAVE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            game_state['chars']   = data.get('chars',   game_state['chars'])
+            game_state['history'] = data.get('history', [])
+            game_state['active']  = data.get('active',  False)
+            print(f'[Save] Loaded save ({len(game_state["history"])} messages)')
+    except Exception as exc:
+        print(f'[Save] Load failed: {exc}')
+
+
+_load_state()
+
 _GEMINI_BASE   = 'https://generativelanguage.googleapis.com'
 _model_cache: tuple | None = None
 _model_lock    = threading.Lock()
@@ -184,7 +226,9 @@ _SYSTEM_PROMPT = (
     "{p1}: HP=[hp]/[maxhp] MP=[mp]/[maxmp] Gold=[g] Level=[lv] Items=[i1,i2] Status=[trạng thái] Location=[địa điểm]\n"
     "{p2}: HP=[hp]/[maxhp] MP=[mp]/[maxmp] Gold=[g] Level=[lv] Items=[i1,i2] Status=[trạng thái] Location=[địa điểm]\n"
     "[/STATS]\n\n"
-    "Kết thúc mỗi lượt bằng 3-5 lựa chọn cụ thể (A. B. C. D...)"
+    "Kết thúc mỗi lượt bằng lựa chọn riêng cho TỪNG nhân vật (3-5 lựa chọn cụ thể):\n"
+    "**Lựa chọn cho {p1}:** A. ... B. ... C. ...\n"
+    "**Lựa chọn cho {p2}:** A. ... B. ... C. ..."
 )
 
 
@@ -313,21 +357,88 @@ _flask_app.secret_key = os.environ.get('SECRET_KEY', 'storymaster-secret-2025')
 _sio = SocketIO(_flask_app, cors_allowed_origins='*', async_mode='threading')
 
 
+def _stream_gemini(contents, max_tokens=4096, _tried: set | None = None):
+    """Yield text chunks from Gemini streamGenerateContent (SSE)."""
+    key = os.environ.get('GEMINI_API_KEY', '')
+    if not key:
+        yield 'Chưa cài API key Gemini. Thêm GEMINI_API_KEY vào file .env rồi khởi động lại nhé!'
+        return
+    if _tried is None:
+        _tried = set()
+    ver, model = _get_model(key)
+    if model in _tried:
+        yield 'Gemini hiện đang bận, vui lòng thử lại sau ít phút nhé!'
+        return
+    _tried.add(model)
+    api_url = (f'{_GEMINI_BASE}/{ver}/models/{model}'
+               f':streamGenerateContent?key={key}&alt=sse')
+    payload = json.dumps({
+        'contents': contents,
+        'generationConfig': {'temperature': 0.85, 'maxOutputTokens': max_tokens, 'topP': 0.95},
+    }).encode('utf-8')
+    req = urllib.request.Request(
+        api_url, data=payload,
+        headers={'Content-Type': 'application/json'}, method='POST')
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            for raw_line in r:
+                line = raw_line.decode('utf-8').rstrip()
+                if not line.startswith('data: '):
+                    continue
+                data_str = line[6:]
+                if data_str == '[DONE]':
+                    return
+                try:
+                    chunk = json.loads(data_str)
+                    parts = chunk['candidates'][0]['content'].get('parts', [])
+                    text = next((p['text'] for p in parts if not p.get('thought')), None)
+                    if text:
+                        yield text
+                except (KeyError, IndexError, json.JSONDecodeError):
+                    continue
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode(errors='ignore')[:300]
+        print(f'[Gemini Stream] HTTP {e.code}: {err_body[:120]}')
+        if e.code in (404, 503):
+            with _model_lock:
+                global _model_cache
+                _model_cache = None
+                for v, n in _PREFERRED_MODELS:
+                    if n not in _tried:
+                        _model_cache = (v, n)
+                        break
+            yield from _stream_gemini(contents, max_tokens, _tried)
+        else:
+            yield f'Lỗi API {e.code}'
+    except Exception as exc:
+        print(f'[Gemini Stream] Exception: {exc}')
+        yield f'Lỗi kết nối Gemini: {exc}'
+
+
 def _gm_thread(contents, max_tokens=4096):
     _sio.emit('gm_typing', True, to='game')
-    reply = _call_gemini(contents, max_tokens)
-    updates = _parse_stats(reply)
+    full_text = ''
+    stream_started = False
+    for chunk in _stream_gemini(contents, max_tokens):
+        if not stream_started:
+            _sio.emit('gm_typing', False, to='game')
+            _sio.emit('gm_stream_start', {}, to='game')
+            stream_started = True
+        full_text += chunk
+        _sio.emit('gm_chunk', {'text': chunk}, to='game')
+    if not stream_started:
+        _sio.emit('gm_typing', False, to='game')
+    updates = _parse_stats(full_text)
     if updates:
         for k, upd in updates.items():
             if k in game_state['chars']:
                 game_state['chars'][k].update(upd)
-        _sio.emit('state_update', game_state['chars'], to='game')
     ts  = datetime.now().strftime('%H:%M')
-    msg = {'type': 'gm', 'sender': 'Game Master', 'text': reply, 'ts': ts}
+    msg = {'type': 'gm', 'sender': 'Game Master', 'text': full_text, 'ts': ts}
     game_state['history'].append(msg)
     game_state['active'] = True
-    _sio.emit('game_msg', msg, to='game')
-    _sio.emit('gm_typing', False, to='game')
+    _sio.emit('gm_stream_end', {'msg': msg, 'chars': game_state['chars']}, to='game')
+    _save_state()
 
 
 # ── Flask + SocketIO ──────────────────────────────────────────────────────────
@@ -547,6 +658,76 @@ def _sio_start(data):
 
 
 # ── PyQt6 window ─────────────────────────────────────────────────────
+# ── OTA helper functions ─────────────────────────────────────────────────────
+def _check_update_bg():
+    """Background thread: check GitHub releases for a newer version."""
+    if not _GITHUB_REPO:
+        return
+    try:
+        url = f'https://api.github.com/repos/{_GITHUB_REPO}/releases/latest'
+        req = urllib.request.Request(url, headers={'User-Agent': 'Elaina-App'})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read())
+        latest = data.get('tag_name', '').lstrip('v')
+        if not latest or latest == VERSION:
+            print(f'[Update] Đang dùng bản mới nhất (v{VERSION})')
+            return
+        assets  = data.get('assets', [])
+        zip_url = next(
+            (a['browser_download_url'] for a in assets if a['name'].endswith('.zip')),
+            None,
+        )
+        if zip_url:
+            print(f'[Update] Phát hiện bản mới v{latest}')
+            _update_queue.put((latest, zip_url))
+    except Exception as exc:
+        print(f'[Update] Kiểm tra thất bại: {exc}')
+
+
+def _apply_update(zip_url: str) -> bool:
+    """Download zip, extract next to exe, write updater bat, return True on success."""
+    if not getattr(sys, 'frozen', False):
+        print('[Update] Chỉ hỗ trợ chế độ exe (frozen).')
+        return False
+    exe_dir  = os.path.dirname(sys.executable)
+    tmp_zip  = os.path.join(exe_dir, '_elaina_update.zip')
+    upd_dir  = os.path.join(exe_dir, '_elaina_update')
+    bat_path = os.path.join(exe_dir, '_elaina_updater.bat')
+    try:
+        print('[Update] Đang tải...')
+        urllib.request.urlretrieve(zip_url, tmp_zip)
+        print('[Update] Đang giải nén...')
+        if os.path.exists(upd_dir):
+            shutil.rmtree(upd_dir)
+        with zipfile.ZipFile(tmp_zip, 'r') as zf:
+            zf.extractall(upd_dir)
+        os.remove(tmp_zip)
+        exe_name = os.path.basename(sys.executable)
+        with open(bat_path, 'w', encoding='utf-8') as f:
+            f.write('@echo off\n')
+            f.write('timeout /t 2 /nobreak >nul\n')
+            f.write(f'xcopy /s /e /y "_elaina_update\\" "."\n')
+            f.write('rmdir /s /q "_elaina_update"\n')
+            f.write(f'start "" "{exe_name}"\n')
+            f.write('del "%~f0"\n')
+        import subprocess
+        subprocess.Popen(
+            ['cmd', '/c', bat_path],
+            cwd=exe_dir,
+            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_CONSOLE,
+        )
+        return True
+    except Exception as exc:
+        print(f'[Update] Lỗi: {exc}')
+        for p in (tmp_zip, upd_dir, bat_path):
+            try:
+                if os.path.isfile(p): os.remove(p)
+                elif os.path.isdir(p): shutil.rmtree(p)
+            except Exception:
+                pass
+        return False
+
+
 class BirthdayWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -571,6 +752,50 @@ class BirthdayWindow(QMainWindow):
         )
         self.browser.setUrl(QUrl(f'http://127.0.0.1:{_PORT}/'))
         self.setCentralWidget(self.browser)
+
+        # Poll for available OTA update every 3 s
+        self._upd_timer = QTimer(self)
+        self._upd_timer.timeout.connect(self._poll_update)
+        self._upd_timer.start(3000)
+
+    def _poll_update(self):
+        try:
+            latest, zip_url = _update_queue.get_nowait()
+        except queue.Empty:
+            return
+        self._upd_timer.stop()
+        reply = QMessageBox.question(
+            self,
+            '✨ Cập nhật mới!',
+            f'Có bản cập nhật mới <b>v{latest}</b> cho Elaina!<br><br>Cập nhật ngay không?<br><i>(App sẽ tự restart sau khi tải xong)</i>',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self._do_update(zip_url, latest)
+
+    def _do_update(self, zip_url: str, latest: str):
+        prog = QProgressDialog(
+            f'Đang tải bản cập nhật v{latest}…', None, 0, 0, self
+        )
+        prog.setWindowTitle('Cập nhật Elaina')
+        prog.setWindowModality(Qt.WindowModality.WindowModal)
+        prog.setCancelButton(None)
+        prog.show()
+        QApplication.processEvents()
+        ok = _apply_update(zip_url)
+        prog.close()
+        if ok:
+            QMessageBox.information(
+                self, 'Thành công!',
+                f'Đã tải xong v{latest}.\nElaina sẽ tự khởi động lại sau 2 giây!'
+            )
+            QApplication.quit()
+        else:
+            QMessageBox.warning(
+                self, 'Lỗi cập nhật',
+                'Cập nhật thất bại. Kiểm tra kết nối internet và thử lại nhé!'
+            )
+            self._upd_timer.start(3000)   # re-enable polling
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_F11:
@@ -598,6 +823,9 @@ def main():
 
     # Optional ngrok tunnel in background (fills _tunnel_url when ready)
     threading.Thread(target=_start_tunnel, daemon=True).start()
+
+    # OTA update check (silent background thread)
+    threading.Thread(target=_check_update_bg, daemon=True).start()
 
     # Brief pause so Flask binds before WebEngine connects
     time.sleep(1.0)

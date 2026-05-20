@@ -329,6 +329,40 @@ socket.on('private_msg',  msg   => appendPriv(msg));
 socket.on('gm_typing',    v     => document.getElementById('gmTyping').style.display = v ? 'inline-block' : 'none');
 socket.on('game_clear',   ()    => { document.getElementById('gmMsgs').innerHTML = ''; setTurnIdle(); });
 
+// ── Streaming GM response ─────────────────────────────────────────────────────
+let _streamBubble = null;
+let _streamText   = '';
+
+socket.on('gm_stream_start', () => {
+  _streamText = '';
+  _streamBubble = document.createElement('div');
+  _streamBubble.className = 'bubble gm';
+  _streamBubble.innerHTML = '<div class="meta">🎲 Game Master · ...</div><div class="stream-body"></div>';
+  const box = document.getElementById('gmMsgs');
+  box.appendChild(_streamBubble);
+  box.scrollTop = box.scrollHeight;
+});
+
+socket.on('gm_chunk', ({ text }) => {
+  if (!_streamBubble) return;
+  _streamText += text;
+  _streamBubble.querySelector('.stream-body').innerHTML = renderText(_streamText);
+  const box = document.getElementById('gmMsgs');
+  box.scrollTop = box.scrollHeight;
+});
+
+socket.on('gm_stream_end', ({ msg, chars }) => {
+  if (_streamBubble) {
+    _streamBubble.querySelector('.meta').textContent = `🎲 Game Master · ${msg.ts}`;
+    _streamBubble.querySelector('.stream-body').innerHTML = renderText(msg.text);
+    _streamBubble = null;
+    _streamText   = '';
+  }
+  renderStats(chars);
+  const box = document.getElementById('gmMsgs');
+  box.scrollTop = box.scrollHeight;
+});
+
 // ── Turn-based dual-action status ─────────────────────────────────────────────
 socket.on('turn_status', ({ waiting, submitted, waiting_for }) => {
   const bar  = document.getElementById('turnStatus');

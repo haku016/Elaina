@@ -9,3 +9,4 @@ __pycache__/
 *_backup.*
 *.bak
 *.txt
+game_save.json

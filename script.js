@@ -694,72 +694,90 @@ Câu hỏi: ${userMessage}`;
         // Discover supported models for THIS key/project, then try in order.
         const MODEL_CANDIDATES = await getSupportedGeminiModels(API_BASE, API_KEY);
 
+        // ── Streaming via streamGenerateContent SSE ──────────────────────────
+        let streamed = false;
         for (const model of MODEL_CANDIDATES) {
-            const API_URL = `${API_BASE}/models/${model}:generateContent?key=${API_KEY}`;
-
-            response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) break;
-
-            // Retry on 404 (model not found) or 503 (overloaded) — try next model
-            if (response.status === 404 || response.status === 503) {
-                lastErrorText = await response.text().catch(() => '');
+            const API_URL = `${API_BASE}/models/${model}:streamGenerateContent?key=${API_KEY}&alt=sse`;
+            let resp;
+            try {
+                resp = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (fetchErr) {
+                lastErrorText = String(fetchErr);
                 continue;
             }
 
-            lastErrorText = await response.text().catch(() => '');
+            if (!resp.ok) {
+                if (resp.status === 404 || resp.status === 503) {
+                    lastErrorText = await resp.text().catch(() => '');
+                    continue;
+                }
+                lastErrorText = await resp.text().catch(() => '');
+                break;
+            }
+
+            // Switch typing bubble to real bot bubble
+            const typingEl = document.getElementById('typing-indicator');
+            if (typingEl) { typingEl.id = ''; typingEl.innerHTML = ''; }
+            const botBubble = typingEl || (() => {
+                const b = document.createElement('div');
+                b.className = 'chat-bubble bot';
+                chatContent.appendChild(b);
+                return b;
+            })();
+
+            const reader  = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer   = '';
+            let fullText = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const dataStr = line.slice(6).trim();
+                    if (!dataStr || dataStr === '[DONE]') continue;
+                    try {
+                        const chunk = JSON.parse(dataStr);
+                        const parts = chunk.candidates?.[0]?.content?.parts ?? [];
+                        const text  = parts.find(p => !p.thought)?.text;
+                        if (text) {
+                            fullText += text;
+                            botBubble.textContent = fullText;
+                            chatContent.scrollTop = chatContent.scrollHeight;
+                        }
+                    } catch (e) { /* skip malformed chunk */ }
+                }
+            }
+
+            // Extract and update stats if game response
+            if (isStoryGameRequest || currentGameState.isPlaying) {
+                const extractedStats = extractStatsFromResponse(fullText);
+                if (extractedStats) {
+                    updateStatsPanel(extractedStats);
+                    currentGameState.isPlaying = true;
+                }
+            }
+
+            streamed = true;
             break;
         }
 
-        // Remove typing indicator
-        const typing = document.getElementById('typing-indicator');
-        if (typing) typing.remove();
-
-        if (!response || !response.ok) {
-            // response body may not be JSON
-            let errorJson = null;
-            try { errorJson = await response.json(); } catch { /* ignore */ }
-            const msg = errorJson?.error?.message || lastErrorText || 'Unknown error';
-            throw new Error(`API Error: ${response ? response.status : 'NO_RESPONSE'} - ${msg}`);
+        if (!streamed) {
+            const typingEl = document.getElementById('typing-indicator');
+            if (typingEl) typingEl.remove();
+            const errBubble = document.createElement('div');
+            errBubble.className = 'chat-bubble bot error';
+            errBubble.textContent = `⚠️ Không thể kết nối Gemini. ${lastErrorText.slice(0, 100)}`;
+            chatContent.appendChild(errBubble);
         }
-
-        const data = await response.json();
-
-        // Extract bot response
-        const botReply =
-            data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-            'Xin lỗi, mình không hiểu câu hỏi của bạn. 😅';
-
-        // Extract and update stats if this is a game response
-        if (isStoryGameRequest || currentGameState.isPlaying) {
-            const extractedStats = extractStatsFromResponse(botReply);
-            if (extractedStats) {
-                updateStatsPanel(extractedStats);
-                currentGameState.isPlaying = true;
-            }
-        }
-
-        // Display bot response with typing effect
-        const botBubble = document.createElement('div');
-        botBubble.className = 'chat-bubble bot';
-        chatContent.appendChild(botBubble);
-
-        // Typing effect
-        let i = 0;
-        const typingSpeed = 20;
-        function typeWriter() {
-            if (i < botReply.length) {
-                botBubble.textContent += botReply.charAt(i);
-                i++;
-                setTimeout(typeWriter, typingSpeed);
-                chatContent.scrollTop = chatContent.scrollHeight;
-            }
-        }
-        typeWriter();
 
     } catch (error) {
         console.error('Error:', error);
