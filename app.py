@@ -660,46 +660,55 @@ def _sio_start(data):
 # ── PyQt6 window ─────────────────────────────────────────────────────
 # ── OTA helper functions ─────────────────────────────────────────────────────
 def _check_update_bg():
-    """Background thread: check GitHub releases for a newer version."""
+    """Background thread: periodically check GitHub releases for a newer version."""
     if not _GITHUB_REPO:
         return
-    try:
-        url = f'https://api.github.com/repos/{_GITHUB_REPO}/releases/latest'
-        req = urllib.request.Request(url, headers={'User-Agent': 'Elaina-App'})
-        with urllib.request.urlopen(req, timeout=10) as r:
-            data = json.loads(r.read())
-        latest = data.get('tag_name', '').lstrip('v')
-        if not latest or latest == VERSION:
-            print(f'[Update] Đang dùng bản mới nhất (v{VERSION})')
-            return
-        assets  = data.get('assets', [])
-        zip_url = next(
-            (a['browser_download_url'] for a in assets if a['name'].endswith('.zip')),
-            None,
-        )
-        if zip_url:
-            print(f'[Update] Phát hiện bản mới v{latest}')
-            _update_queue.put((latest, zip_url))
-    except Exception as exc:
-        print(f'[Update] Kiểm tra thất bại: {exc}')
+    while True:
+        try:
+            url = f'https://api.github.com/repos/{_GITHUB_REPO}/releases/latest'
+            req = urllib.request.Request(url, headers={'User-Agent': 'Elaina-App'})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                data = json.loads(r.read())
+            latest = data.get('tag_name', '').lstrip('v')
+            if not latest or latest == VERSION:
+                print(f'[Update] Running v{VERSION} (latest)')
+            else:
+                assets  = data.get('assets', [])
+                zip_url = next(
+                    (a['browser_download_url'] for a in assets if a['name'].endswith('.zip')),
+                    None,
+                )
+                if zip_url:
+                    print(f'[Update] New version detected: v{latest}')
+                    if _update_queue.empty():  # Only add if not already pending
+                        _update_queue.put((latest, zip_url))
+        except Exception as exc:
+            print(f'[Update] Check failed: {exc}')
+        # Check again every 5 minutes
+        time.sleep(300)
 
 
 def _apply_update(zip_url: str) -> bool:
     """Download zip, extract next to exe, write updater bat, return True on success."""
     if not getattr(sys, 'frozen', False):
         print('[Update] Chỉ hỗ trợ chế độ exe (frozen).')
-        return False
+        return False, 'Dev mode - only works in .exe'
     exe_dir  = os.path.dirname(sys.executable)
     tmp_zip  = os.path.join(exe_dir, '_elaina_update.zip')
     upd_dir  = os.path.join(exe_dir, '_elaina_update')
     bat_path = os.path.join(exe_dir, '_elaina_updater.bat')
     try:
-        print('[Update] Đang tải...')
-        urllib.request.urlretrieve(zip_url, tmp_zip)
-        print('[Update] Đang giải nén...')
+        print(f'[Update] Downloading from {zip_url}')
+        req = urllib.request.Request(zip_url, headers={'User-Agent': 'Elaina-App'})
+        with urllib.request.urlopen(req, timeout=60) as resp, open(tmp_zip, 'wb') as f:
+            shutil.copyfileobj(resp, f)
+        print(f'[Update] Downloaded {os.path.getsize(tmp_zip)} bytes, extracting...')
         if os.path.exists(upd_dir):
             shutil.rmtree(upd_dir)
         with zipfile.ZipFile(tmp_zip, 'r') as zf:
+            # List zip contents to debug structure
+            names = zf.namelist()
+            print(f'[Update] Zip contains {len(names)} files, top: {names[:5]}')
             zf.extractall(upd_dir)
         os.remove(tmp_zip)
         exe_name = os.path.basename(sys.executable)
@@ -716,16 +725,17 @@ def _apply_update(zip_url: str) -> bool:
             cwd=exe_dir,
             creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_CONSOLE,
         )
-        return True
+        return True, ''
     except Exception as exc:
-        print(f'[Update] Lỗi: {exc}')
+        msg = str(exc)
+        print(f'[Update] Error: {msg}')
         for p in (tmp_zip, upd_dir, bat_path):
             try:
                 if os.path.isfile(p): os.remove(p)
                 elif os.path.isdir(p): shutil.rmtree(p)
             except Exception:
                 pass
-        return False
+        return False, msg
 
 
 class BirthdayWindow(QMainWindow):
@@ -772,6 +782,9 @@ class BirthdayWindow(QMainWindow):
         )
         if reply == QMessageBox.StandardButton.Yes:
             self._do_update(zip_url, latest)
+        else:
+            # User declined — resume polling
+            self._upd_timer.start(3000)
 
     def _do_update(self, zip_url: str, latest: str):
         prog = QProgressDialog(
@@ -782,7 +795,7 @@ class BirthdayWindow(QMainWindow):
         prog.setCancelButton(None)
         prog.show()
         QApplication.processEvents()
-        ok = _apply_update(zip_url)
+        ok, err_msg = _apply_update(zip_url)
         prog.close()
         if ok:
             QMessageBox.information(
@@ -793,7 +806,7 @@ class BirthdayWindow(QMainWindow):
         else:
             QMessageBox.warning(
                 self, 'Lỗi cập nhật',
-                'Cập nhật thất bại. Kiểm tra kết nối internet và thử lại nhé!'
+                f'Cập nhật thất bại:\n\n{err_msg}\n\nKiểm tra console (F12) để xem chi tiết.'
             )
             self._upd_timer.start(3000)   # re-enable polling
 

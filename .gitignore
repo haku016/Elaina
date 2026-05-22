@@ -10,3 +10,4 @@ __pycache__/
 *.bak
 *.txt
 game_save.json
+*.zip
