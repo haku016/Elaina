@@ -690,52 +690,91 @@ def _check_update_bg():
 
 def _apply_update(zip_url: str) -> bool:
     """Download zip, extract next to exe, write updater bat, return True on success."""
-    if not getattr(sys, 'frozen', False):
-        print('[Update] Chỉ hỗ trợ chế độ exe (frozen).')
-        return False, 'Dev mode - only works in .exe'
-    exe_dir  = os.path.dirname(sys.executable)
+    exe_dir  = (os.path.dirname(sys.executable)
+                if getattr(sys, 'frozen', False)
+                else os.path.dirname(os.path.abspath(__file__)))
+    log_path = os.path.join(exe_dir, 'update.log')
+
+    def _log(msg: str):
+        ts = datetime.now().strftime('%H:%M:%S')
+        line = f'[{ts}] {msg}'
+        print(line)
+        try:
+            with open(log_path, 'a', encoding='utf-8') as lf:
+                lf.write(line + '\n')
+        except Exception:
+            pass
+
+    _log(f'=== Update started ===')
+    _log(f'frozen={getattr(sys, "frozen", False)}')
+    _log(f'exe_dir={exe_dir}')
+    _log(f'zip_url={zip_url}')
+
     tmp_zip  = os.path.join(exe_dir, '_elaina_update.zip')
     upd_dir  = os.path.join(exe_dir, '_elaina_update')
     bat_path = os.path.join(exe_dir, '_elaina_updater.bat')
+
     try:
-        print(f'[Update] Downloading from {zip_url}')
+        # Step 1 — download
+        _log(f'[1/5] Downloading...')
         req = urllib.request.Request(zip_url, headers={'User-Agent': 'Elaina-App'})
-        with urllib.request.urlopen(req, timeout=60) as resp, open(tmp_zip, 'wb') as f:
+        with urllib.request.urlopen(req, timeout=120) as resp, open(tmp_zip, 'wb') as f:
             shutil.copyfileobj(resp, f)
-        print(f'[Update] Downloaded {os.path.getsize(tmp_zip)} bytes, extracting...')
+        _log(f'[1/5] Downloaded {os.path.getsize(tmp_zip):,} bytes -> {tmp_zip}')
+
+        # Step 2 — clean old extract dir
+        _log(f'[2/5] Cleaning old extract dir...')
         if os.path.exists(upd_dir):
             shutil.rmtree(upd_dir)
+
+        # Step 3 — extract zip
+        _log(f'[3/5] Extracting zip...')
         with zipfile.ZipFile(tmp_zip, 'r') as zf:
-            # List zip contents to debug structure
             names = zf.namelist()
-            print(f'[Update] Zip contains {len(names)} files, top: {names[:5]}')
+            _log(f'[3/5] Zip has {len(names)} entries, first 5: {names[:5]}')
             zf.extractall(upd_dir)
         os.remove(tmp_zip)
-        exe_name = os.path.basename(sys.executable)
+        _log(f'[3/5] Extracted to {upd_dir}')
+
+        # Step 4 — write bat
+        _log(f'[4/5] Writing updater bat...')
+        exe_name = os.path.basename(sys.executable) if getattr(sys, 'frozen', False) else ''
         with open(bat_path, 'w', encoding='utf-8') as f:
             f.write('@echo off\n')
+            f.write(f'cd /d "{exe_dir}"\n')
             f.write('timeout /t 2 /nobreak >nul\n')
             f.write(f'xcopy /s /e /y "_elaina_update\\" "."\n')
             f.write('rmdir /s /q "_elaina_update"\n')
-            f.write(f'start "" "{exe_name}"\n')
+            if exe_name:
+                f.write(f'start "" "{exe_name}"\n')
             f.write('del "%~f0"\n')
+        _log(f'[4/5] Bat written to {bat_path}')
+
+        # Step 5 — launch bat
+        _log(f'[5/5] Launching updater bat...')
         import subprocess
-        subprocess.Popen(
+        proc = subprocess.Popen(
             ['cmd', '/c', bat_path],
             cwd=exe_dir,
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
+        _log(f'[5/5] Bat launched, pid={proc.pid}')
+        _log(f'=== Update complete — app will restart ===')
         return True, ''
+
     except Exception as exc:
+        import traceback
         msg = str(exc)
-        print(f'[Update] Error: {msg}')
+        tb  = traceback.format_exc()
+        _log(f'ERROR: {msg}')
+        _log(tb)
         for p in (tmp_zip, upd_dir, bat_path):
             try:
                 if os.path.isfile(p): os.remove(p)
                 elif os.path.isdir(p): shutil.rmtree(p)
             except Exception:
                 pass
-        return False, msg
+        return False, f'{msg}\n\nLog: {log_path}'
 
 
 class BirthdayWindow(QMainWindow):
