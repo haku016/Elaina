@@ -36,7 +36,7 @@ from PyQt6.QtGui import QIcon, QPixmap
 
 # ── OTA Auto-Updater ─────────────────────────────────────────────────────────
 # Set VERSION before each build, set _GITHUB_REPO to 'user/repo' to enable OTA
-VERSION      = '1.0.1'
+VERSION      = '1.0.2'
 _GITHUB_REPO = 'haku016/Elaina'
 _update_queue: 'queue.Queue[tuple[str, str]]' = queue.Queue()
 
