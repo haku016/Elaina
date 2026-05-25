@@ -5,7 +5,7 @@ build/
 __pycache__/
 *.pyc
 *.pyo
-*.spec
+#*.spec
 *_backup.*
 *.bak
 *.txt

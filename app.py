@@ -685,7 +685,7 @@ def _check_update_bg():
         except Exception as exc:
             print(f'[Update] Check failed: {exc}')
         # Check again every 5 minutes
-        time.sleep(300)
+        time.sleep(60)
 
 
 def _apply_update(zip_url: str) -> bool:
