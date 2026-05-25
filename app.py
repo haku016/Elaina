@@ -723,7 +723,7 @@ def _apply_update(zip_url: str) -> bool:
         subprocess.Popen(
             ['cmd', '/c', bat_path],
             cwd=exe_dir,
-            creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_CONSOLE,
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
         return True, ''
     except Exception as exc:
