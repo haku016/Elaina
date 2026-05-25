@@ -260,6 +260,24 @@
         </div>
       </div>
     </div>
+    <div id="app-version" style="
+        position: fixed;
+        bottom: 8px;
+        left: 10px;
+        font-family: 'Press Start 2P', monospace;
+        font-size: 7px;
+        color: rgba(255,255,255,0.35);
+        pointer-events: none;
+        user-select: none;
+        z-index: 9999;
+        letter-spacing: 0.5px;
+    "></div>
     <script src="script.js"></script>
+    <script>
+        (function(){
+            var v = window.APP_VERSION || '';
+            if (v) document.getElementById('app-version').textContent = 'v' + v;
+        })();
+    </script>
 </body>
 </html>

@@ -461,6 +461,7 @@ def _birthday_index(path=''):
     inject = (
         '<script>'
         f'window.GEMINI_API_KEY={json.dumps(api_key)};'
+        f'window.APP_VERSION={json.dumps(VERSION)};'
         'function openGame(){window.location.href="/lobby";}'
         '</script>\n'
     )
